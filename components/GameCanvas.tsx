@@ -26,6 +26,7 @@ const GameCanvas: React.FC<GameCanvasProps> = ({ status, levelData, onScore, onC
   const frameCountRef = useRef<number>(0);
   const flagEntityRef = useRef<Entity | null>(null);
   const cutsceneState = useRef<'none' | 'sliding' | 'walking_castle'>('none');
+  const hasLoggedMapLoad = useRef<boolean>(false);
   
   const gameState = useRef({
     player: {
@@ -96,6 +97,8 @@ const GameCanvas: React.FC<GameCanvasProps> = ({ status, levelData, onScore, onC
 
   useEffect(() => {
     if (status === GameStatus.PLAYING) {
+      hasLoggedMapLoad.current = false; // Reset logging flag
+      
       console.log('[GameCanvas] Laddar ny bana:', {
         mapRows: levelData.map?.length,
         mapCols: levelData.map?.[0]?.length,
@@ -108,6 +111,11 @@ const GameCanvas: React.FC<GameCanvasProps> = ({ status, levelData, onScore, onC
         },
         nonZeroTiles: levelData.map?.flat().filter((t: number) => t !== 0).length || 0
       });
+      
+      if (!levelData.map || levelData.map.length === 0) {
+        console.error('[GameCanvas] FEL: Kartan är tom! levelData:', levelData);
+        return;
+      }
       
       gameState.current.map = JSON.parse(JSON.stringify(levelData.map)); // Deep copy map
       gameState.current.entities = levelData.entities.map(e => ({...e, grounded: false}));
@@ -587,8 +595,9 @@ const GameCanvas: React.FC<GameCanvasProps> = ({ status, levelData, onScore, onC
     const endCol = startCol + (SCREEN_WIDTH / TILE_SIZE) + 1;
     const map = gameState.current.map;
 
-    // Debug logging (only first frame to avoid spam)
-    if (frameCountRef.current === 0) {
+    // Debug logging (only once when map is loaded)
+    if (!hasLoggedMapLoad.current && map && map.length > 0) {
+      hasLoggedMapLoad.current = true;
       console.log('[GameCanvas] Rendering karta:', {
         startCol,
         endCol,
