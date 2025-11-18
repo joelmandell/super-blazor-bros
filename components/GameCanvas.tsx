@@ -50,13 +50,61 @@ const GameCanvas: React.FC<GameCanvasProps> = ({ status, levelData, onScore, onC
 
   const keys = useRef<Keys>({ left: false, right: false, jump: false, run: false });
 
+  // Helper function to find safe starting position for Mario
+  const findSafeStartPosition = (map: number[][]): { x: number, y: number } => {
+    const START_X = 50; // Preferred start X position
+    const START_TILE_X = Math.floor(START_X / TILE_SIZE);
+    const GROUND_TILES = [TileType.GROUND, TileType.BRICK, TileType.QUESTION_BLOCK, TileType.HARD_BLOCK, TileType.PIPE_L, TileType.PIPE_R, TileType.PIPE_TOP_L, TileType.PIPE_TOP_R];
+    const MARIO_HEIGHT = 16;
+    
+    // Check columns from start position, going left if needed
+    for (let offset = 0; offset < 10; offset++) {
+      const checkX = Math.max(0, START_TILE_X - offset);
+      
+      // Find the TOP of the ground tile at this X position
+      // We need to find the highest ground tile (lowest y value) that has ground
+      // Search from top down to find the first (highest) ground tile
+      let groundTileY = -1;
+      for (let y = 0; y < map.length; y++) {
+        if (map[y] && GROUND_TILES.includes(map[y][checkX])) {
+          // Found ground - this is the topmost ground tile at this column
+          groundTileY = y;
+          break; // Found the topmost ground tile, no need to continue
+        }
+      }
+      
+      if (groundTileY >= 0) {
+        // Found ground tile at row groundTileY
+        // Ground tile's top edge is at groundTileY * TILE_SIZE
+        // Mario's bottom should be at groundTileY * TILE_SIZE
+        // So Mario's top should be at groundTileY * TILE_SIZE - MARIO_HEIGHT
+        const groundTopY = groundTileY * TILE_SIZE;
+        const marioY = groundTopY - MARIO_HEIGHT;
+        
+        // Double-check: Mario should be above ground, not inside it
+        if (marioY < groundTopY) {
+          return { x: checkX * TILE_SIZE + 2, y: marioY };
+        }
+      }
+    }
+    
+    // Fallback: place at bottom of screen (above ground level)
+    // Use row 12 (one row above typical ground rows 13-14)
+    const fallbackY = 12 * TILE_SIZE - MARIO_HEIGHT;
+    return { x: START_X, y: fallbackY };
+  };
+
   useEffect(() => {
     if (status === GameStatus.PLAYING) {
       gameState.current.map = JSON.parse(JSON.stringify(levelData.map)); // Deep copy map
       gameState.current.entities = levelData.entities.map(e => ({...e, grounded: false}));
+      
+      // Find safe starting position
+      const startPos = findSafeStartPosition(gameState.current.map);
+      
       gameState.current.player = {
         ...gameState.current.player,
-        pos: { x: 50, y: 100 },
+        pos: startPos,
         vel: { x: 0, y: 0 },
         dead: false,
         grounded: false,
@@ -281,11 +329,12 @@ const GameCanvas: React.FC<GameCanvasProps> = ({ status, levelData, onScore, onC
   };
 
   const triggerFlagSequence = () => {
-    if (cutsceneState.current !== 'none') return;
+    if (cutsceneState.current !== 'none' || !flagEntityRef.current) return;
     cutsceneState.current = 'sliding';
     audioService.playFlagSlide();
     gameState.current.player.vel = { x: 0, y: 1.5 }; // Slide down (reduced)
-    gameState.current.player.pos.x = 198 * TILE_SIZE + 2; // Snap to pole
+    // Snap to pole position (flag is offset, pole is at flag.x - 6)
+    gameState.current.player.pos.x = flagEntityRef.current.pos.x - 6 + 2;
   };
 
   const update = () => {
@@ -346,10 +395,19 @@ const GameCanvas: React.FC<GameCanvasProps> = ({ status, levelData, onScore, onC
       player.grounded = false; 
       resolveYCollision(player, map);
 
-      // Check Flag Collision
-      const poleX = 198 * TILE_SIZE;
-      if (player.pos.x > poleX && player.pos.x < poleX + 8) {
-         triggerFlagSequence();
+      // Check Flag Collision - can touch flag by jumping on it or touching pole
+      if (flagEntityRef.current) {
+        const flag = flagEntityRef.current;
+        // Check if player collides with flag entity (jumping on flag)
+        if (checkCollision(player, flag)) {
+          triggerFlagSequence();
+        }
+        // Also check if player touches the pole area
+        const poleX = flag.pos.x - 6; // Pole is 4 pixels wide, flag is offset
+        if (player.pos.x + player.width > poleX && player.pos.x < poleX + 4 && 
+            player.pos.y + player.height > flag.pos.y) {
+          triggerFlagSequence();
+        }
       }
 
       if (player.pos.y > SCREEN_HEIGHT + 32) {

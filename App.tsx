@@ -96,6 +96,7 @@ export default function App() {
     if (!apiKey) {
       console.warn('[AI Generate] Ingen API-nyckel hittad, visar input-dialog');
       setShowKeyInput(true);
+      setStatus(GameStatus.MENU); // Return to menu to show input
       return;
     }
 
@@ -105,27 +106,33 @@ export default function App() {
     setLoadingText("Gemini bygger en bana...");
     setStatus(GameStatus.LOADING);
     
-    const startTime = Date.now();
-    const data = await generateLevel(apiKey);
-    const duration = Date.now() - startTime;
-    
-    console.log(`[AI Generate] Generering klar efter ${duration}ms`);
-    
-    if (data) {
-      console.log('[AI Generate] Bana genererad framgångsrikt!');
-      console.log('[AI Generate] Bana-data:', {
-        mapRows: data.map.length,
-        mapCols: data.map[0]?.length || 0,
-        entitiesCount: data.entities?.length || 0,
-        backgroundColor: data.backgroundColor
-      });
-      setLevelData(data);
-      setStats(s => ({ ...s, score: 0, coins: 0, time: 400, world: '1-AI' }));
-      setStatus(GameStatus.PLAYING);
-      console.log('[AI Generate] Spelstatus ändrad till PLAYING');
-    } else {
-      console.error('[AI Generate] Generering misslyckades - ingen data returnerad');
-      alert("Kunde inte generera bana. Kontrollera API-nyckel och försök igen.");
+    try {
+      const startTime = Date.now();
+      const data = await generateLevel(apiKey);
+      const duration = Date.now() - startTime;
+      
+      console.log(`[AI Generate] Generering klar efter ${duration}ms`);
+      
+      if (data) {
+        console.log('[AI Generate] Bana genererad framgångsrikt!');
+        console.log('[AI Generate] Bana-data:', {
+          mapRows: data.map.length,
+          mapCols: data.map[0]?.length || 0,
+          entitiesCount: data.entities?.length || 0,
+          backgroundColor: data.backgroundColor
+        });
+        setLevelData(data);
+        setStats(s => ({ ...s, score: 0, coins: 0, time: 400, world: '1-AI', lives: 3 }));
+        setStatus(GameStatus.PLAYING);
+        console.log('[AI Generate] Spelstatus ändrad till PLAYING');
+      } else {
+        console.error('[AI Generate] Generering misslyckades - ingen data returnerad');
+        alert("Kunde inte generera bana. Kontrollera API-nyckel och försök igen.");
+        setStatus(GameStatus.MENU);
+      }
+    } catch (error) {
+      console.error('[AI Generate] Fel vid generering:', error);
+      alert("Ett fel uppstod vid generering av bana. Försök igen.");
       setStatus(GameStatus.MENU);
     }
   };
