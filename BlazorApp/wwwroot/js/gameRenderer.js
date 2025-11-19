@@ -58,7 +58,15 @@ export function startRendering(levelData) {
 }
 
 export function render(renderData) {
-    if (!ctx || !canvas) return;
+    if (!ctx || !canvas) {
+        console.error('Canvas or context not initialized');
+        return;
+    }
+    
+    if (!renderData) {
+        console.error('No render data provided');
+        return;
+    }
     
     const { player, entities, cameraX, level } = renderData;
     
@@ -69,10 +77,14 @@ export function render(renderData) {
     // Save context for camera transform
     ctx.save();
     ctx.scale(SCALE, SCALE);
-    ctx.translate(-Math.floor(cameraX), 0);
+    ctx.translate(-Math.floor(cameraX || 0), 0);
     
     // Render level
-    renderLevel(level);
+    if (level) {
+        renderLevel(level);
+    } else {
+        console.warn('No level data to render');
+    }
     
     // Render entities
     if (entities && entities.length > 0) {
@@ -82,6 +94,8 @@ export function render(renderData) {
     // Render player
     if (player) {
         renderPlayer(player);
+    } else {
+        console.warn('No player data to render');
     }
     
     // Restore context
