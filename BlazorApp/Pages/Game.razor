@@ -169,7 +169,7 @@
     private async Task SendKey(string key, bool isDown)
     {
         // Import the renderer module and send key event
-        var module = await JSRuntime.InvokeAsync<IJSObjectReference>("import", "./js/gameRenderer.js");
+        var module = await JSRuntime.InvokeAsync<IJSObjectReference>("import", "./js/gameRendererWebGL.js");
         await module.InvokeVoidAsync("sendKeyEvent", key, isDown);
     }
 
