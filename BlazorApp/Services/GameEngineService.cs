@@ -211,13 +211,27 @@ public class GameEngineService : IAsyncDisposable
         double maxSpeed = isRunning ? GameConstants.MAX_RUN_SPEED : GameConstants.MAX_WALK_SPEED;
         _player.Vel.X = Math.Clamp(_player.Vel.X, -maxSpeed, maxSpeed);
         
-        // Jumping
+        // Jumping - SMW style with spin jump
         if ((_keysDown.Contains("Space") || _keysDown.Contains("ArrowUp") || _keysDown.Contains("KeyW")) && 
             _player.Grounded && !_player.IsJumping)
         {
-            _player.Vel.Y = -GameConstants.JUMP_FORCE;
+            // Check if A key is held for spin jump (SMW feature)
+            bool spinJump = _keysDown.Contains("KeyA");
+            double jumpForce = spinJump ? GameConstants.SPIN_JUMP_FORCE : GameConstants.JUMP_FORCE;
+            
+            _player.Vel.Y = -jumpForce;
             _player.IsJumping = true;
             _player.Grounded = false;
+            _player.IsSpinJumping = spinJump;
+            
+            // Play jump sound
+            _ = PlaySoundAsync("jump");
+        }
+        
+        // Reset spin jump when grounded
+        if (_player.Grounded)
+        {
+            _player.IsSpinJumping = false;
         }
         
         // Apply gravity
@@ -245,7 +259,6 @@ public class GameEngineService : IAsyncDisposable
     {
         _player.Grounded = false;
         int[] groundTiles = { 1, 2, 3, 5, 6, 7, 8, 9 };
-        int[] coinTiles = { 4 };
         
         int startX = Math.Max(0, (int)(_player.Pos.X / GameConstants.TILE_SIZE));
         int endX = Math.Min((int)((_player.Pos.X + _player.Width) / GameConstants.TILE_SIZE), (_levelData.Map[0]?.Length ?? 0) - 1);
@@ -293,6 +306,17 @@ public class GameEngineService : IAsyncDisposable
                         {
                             _player.Pos.Y = tileBottom;
                             _player.Vel.Y = 0;
+                            
+                            // Check if hitting question block from below
+                            if (tile == 3) // Question block
+                            {
+                                // Change to hit question block
+                                _levelData.Map[y][x] = 4;
+                                
+                                // Spawn mushroom
+                                SpawnMushroom(x, y);
+                                _ = PlaySoundAsync("powerup-appears");
+                            }
                         }
                         else if (minOverlap == overlapLeft && _player.Vel.X > 0)
                         {
@@ -306,12 +330,25 @@ public class GameEngineService : IAsyncDisposable
                         }
                     }
                 }
-                else if (Array.IndexOf(coinTiles, tile) >= 0)
+                else if (tile == 12) // Coin tile
                 {
-                    _levelData.Map[y][x] = 0;
-                    _stats.Coins++;
-                    _stats.Score += 100;
-                    OnStatsChanged?.Invoke(_stats);
+                    // Check if player is overlapping coin
+                    double tileX = x * GameConstants.TILE_SIZE;
+                    double tileY = y * GameConstants.TILE_SIZE;
+                    double tileRight = tileX + GameConstants.TILE_SIZE;
+                    double tileBottom = tileY + GameConstants.TILE_SIZE;
+                    
+                    if (_player.Pos.X < tileRight && 
+                        _player.Pos.X + _player.Width > tileX &&
+                        _player.Pos.Y < tileBottom && 
+                        _player.Pos.Y + _player.Height > tileY)
+                    {
+                        _levelData.Map[y][x] = 0;
+                        _stats.Coins++;
+                        _stats.Score += 100;
+                        OnStatsChanged?.Invoke(_stats);
+                        _ = PlaySoundAsync("coin");
+                    }
                 }
             }
         }
@@ -333,15 +370,59 @@ public class GameEngineService : IAsyncDisposable
     
     private void UpdateEntities()
     {
-        int[] groundTiles = { 1, 2, 3, 5, 6, 7, 8, 9 };
+        int[] groundTiles = { 1, 2, 3, 4, 5, 6, 7, 8, 9, 10 };
         
         for (int i = _entities.Count - 1; i >= 0; i--)
         {
             var entity = _entities[i];
             
-            if (entity.Type == EntityType.GOOMBA)
+            if (entity.Dead) continue;
+            
+            // Handle mushroom power-ups
+            if (entity.Type == EntityType.MUSHROOM)
             {
-                entity.Vel.X = entity.Direction * 1.0;
+                // Mushroom movement
+                entity.Vel.X = entity.Direction * 1.2;
+                entity.Pos.X += entity.Vel.X;
+                entity.Vel.Y += GameConstants.GRAVITY;
+                entity.Pos.Y += entity.Vel.Y;
+                
+                // Ground collision
+                int tileX = (int)(entity.Pos.X / GameConstants.TILE_SIZE);
+                int tileY = (int)((entity.Pos.Y + entity.Height) / GameConstants.TILE_SIZE);
+                
+                if (tileY >= 0 && tileY < _levelData.Map.Length)
+                {
+                    if (_levelData.Map[tileY] != null && tileX >= 0 && tileX < _levelData.Map[tileY].Length)
+                    {
+                        if (Array.IndexOf(groundTiles, _levelData.Map[tileY][tileX]) >= 0)
+                        {
+                            double groundY = tileY * GameConstants.TILE_SIZE;
+                            if (entity.Pos.Y + entity.Height > groundY)
+                            {
+                                entity.Pos.Y = groundY - entity.Height;
+                                entity.Vel.Y = 0;
+                            }
+                        }
+                    }
+                }
+                
+                // Player collision with mushroom
+                if (CheckCollision(_player, entity))
+                {
+                    _entities.RemoveAt(i);
+                    _player.PowerMode = "big";
+                    _player.Height = 24; // Grow taller
+                    _stats.Score += 1000;
+                    OnStatsChanged?.Invoke(_stats);
+                    _ = PlaySoundAsync("powerup");
+                    continue;
+                }
+            }
+            // Handle enemies (Goomba, Koopa, Rex)
+            else if (entity.Type == EntityType.GOOMBA || entity.Type == EntityType.KOOPA)
+            {
+                entity.Vel.X = entity.Direction * 0.6;
                 entity.Pos.X += entity.Vel.X;
                 entity.Vel.Y += GameConstants.GRAVITY;
                 entity.Pos.Y += entity.Vel.Y;
@@ -366,24 +447,66 @@ public class GameEngineService : IAsyncDisposable
                     }
                 }
                 
-                // Player collision
-                if (Math.Abs(_player.Pos.X - entity.Pos.X) < 16 && 
-                    Math.Abs(_player.Pos.Y - entity.Pos.Y) < 16)
+                // Player collision with enemy
+                if (CheckCollision(_player, entity))
                 {
                     if (_player.Vel.Y > 0 && _player.Pos.Y < entity.Pos.Y)
                     {
-                        _entities.RemoveAt(i);
-                        _stats.Score += 200;
-                        _player.Vel.Y = -5;
+                        // Jump on enemy
+                        entity.Dead = true;
+                        
+                        // SMW spin jump gives smaller bounce
+                        if (_player.IsSpinJumping)
+                        {
+                            _player.Vel.Y = -2.5;
+                            _stats.Score += 200; // Bonus points for spin jump
+                        }
+                        else
+                        {
+                            _player.Vel.Y = -GameConstants.BOUNCE_FORCE;
+                            _stats.Score += 100;
+                        }
                         OnStatsChanged?.Invoke(_stats);
+                        _ = PlaySoundAsync("stomp");
                     }
-                    else
+                    else if (!_player.IsSpinJumping)
                     {
+                        // Hit by enemy (spin jump protects you in SMW)
                         OnPlayerDie();
                     }
                 }
             }
         }
+    }
+    
+    private bool CheckCollision(Entity a, Entity b)
+    {
+        return a.Pos.X < b.Pos.X + b.Width &&
+               a.Pos.X + a.Width > b.Pos.X &&
+               a.Pos.Y < b.Pos.Y + b.Height &&
+               a.Pos.Y + a.Height > b.Pos.Y;
+    }
+    
+    private void SpawnMushroom(int blockX, int blockY)
+    {
+        var mushroom = new Entity
+        {
+            Id = _entities.Count + 1000,
+            Type = EntityType.MUSHROOM,
+            Pos = new Vector2D 
+            { 
+                X = blockX * GameConstants.TILE_SIZE, 
+                Y = (blockY - 1) * GameConstants.TILE_SIZE 
+            },
+            Vel = new Vector2D { X = 1.2, Y = -2 },
+            Width = 16,
+            Height = 16,
+            Dead = false,
+            Direction = 1,
+            State = "mushroom"
+        };
+        
+        _entities.Add(mushroom);
     }
     
     private void CheckVictoryCondition()
@@ -427,13 +550,15 @@ public class GameEngineService : IAsyncDisposable
                     pos = new { x = _player.Pos.X, y = _player.Pos.Y },
                     width = _player.Width,
                     height = _player.Height,
-                    direction = _player.Direction
+                    direction = _player.Direction,
+                    powerMode = _player.PowerMode
                 },
-                entities = _entities.Select(e => new {
+                entities = _entities.Where(e => !e.Dead).Select(e => new {
                     pos = new { x = e.Pos.X, y = e.Pos.Y },
                     width = e.Width,
                     height = e.Height,
-                    type = (int)e.Type
+                    type = (int)e.Type,
+                    state = e.State
                 }).ToList(),
                 cameraX = _cameraX,
                 level = _levelData.Map
@@ -450,6 +575,21 @@ public class GameEngineService : IAsyncDisposable
         {
             Console.WriteLine($"Render error: {ex.Message}");
             Console.WriteLine($"Stack trace: {ex.StackTrace}");
+        }
+    }
+    
+    private async Task PlaySoundAsync(string soundName)
+    {
+        if (_renderModule == null) return;
+        
+        try
+        {
+            await _renderModule.InvokeVoidAsync("playSound", soundName);
+        }
+        catch (Exception ex)
+        {
+            // Sound errors are non-critical, just log
+            Console.WriteLine($"Sound error: {ex.Message}");
         }
     }
     

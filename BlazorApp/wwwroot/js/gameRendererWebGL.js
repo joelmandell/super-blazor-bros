@@ -204,12 +204,13 @@ function renderLevel(map, cameraX) {
         1: [0.78, 0.30, 0.05, 1.0], // Ground #C84C0C
         2: [0.72, 0.20, 0.06, 1.0], // Brick #B83410
         3: [0.97, 0.85, 0.13, 1.0], // Question #F8D820
-        4: [1.00, 0.84, 0.00, 1.0], // Coin
+        4: [0.63, 0.63, 0.63, 1.0], // Hit question block (gray)
         5: [0.50, 0.50, 0.50, 1.0], // Hard block (gray)
         6: [0.00, 0.66, 0.00, 1.0], // Pipe left #00A800
         7: [0.00, 0.66, 0.00, 1.0], // Pipe right #00A800
         8: [0.00, 0.66, 0.00, 1.0], // Pipe top left #00A800
-        9: [0.00, 0.66, 0.00, 1.0]  // Pipe top right #00A800
+        9: [0.00, 0.66, 0.00, 1.0], // Pipe top right #00A800
+        12: [0.97, 0.85, 0.13, 1.0] // Coin (gold)
     };
     
     for (let y = 0; y < map.length; y++) {
@@ -232,6 +233,18 @@ function renderLevel(map, cameraX) {
                 const centerY = tileY + (TILE_SIZE * SCALE) / 2;
                 // Simple question mark representation (small rectangle)
                 drawRectangle(centerX - 4, centerY - 8, 8, 16, qColor, cameraX);
+            }
+            
+            // Render coins as circles (well, small squares with shine)
+            if (tile === 12) {
+                const coinSize = TILE_SIZE * SCALE * 0.5;
+                const coinX = tileX + (TILE_SIZE * SCALE - coinSize) / 2;
+                const coinY = tileY + (TILE_SIZE * SCALE - coinSize) / 2;
+                // Gold coin
+                drawRectangle(coinX, coinY, coinSize, coinSize, color, cameraX);
+                // White shine
+                const shineSize = coinSize * 0.3;
+                drawRectangle(coinX + shineSize * 0.5, coinY + shineSize * 0.5, shineSize, shineSize, [1.0, 1.0, 1.0, 1.0], cameraX);
             }
         }
     }
@@ -268,11 +281,57 @@ function renderEntity(entity, cameraX) {
     const w = (entity.width || 16) * SCALE;
     const h = (entity.height || 16) * SCALE;
     
-    // EntityType.GOOMBA = 1
-    if (entity.type === 1) {
+    const white = [1.00, 1.00, 1.00, 1.0];
+    const black = [0.00, 0.00, 0.00, 1.0];
+    
+    // EntityType.MUSHROOM = 3
+    if (entity.type === 3 || entity.state === 'mushroom') {
+        const red = [0.97, 0.06, 0.09, 1.0];    // Red cap
+        const cream = [1.00, 0.97, 0.86, 1.0];  // Cream stem
+        
+        // Mushroom cap (red with white spots)
+        drawRectangle(x, y, w, h * 0.6, red, cameraX);
+        
+        // White spots on cap
+        const spotSize = w * 0.25;
+        drawRectangle(x + w * 0.2, y + h * 0.15, spotSize, spotSize * 0.8, white, cameraX);
+        drawRectangle(x + w * 0.55, y + h * 0.15, spotSize, spotSize * 0.8, white, cameraX);
+        
+        // Mushroom stem (cream/white)
+        drawRectangle(x + w * 0.3, y + h * 0.6, w * 0.4, h * 0.4, cream, cameraX);
+        
+        // Eyes
+        drawRectangle(x + w * 0.35, y + h * 0.35, w * 0.1, h * 0.1, black, cameraX);
+        drawRectangle(x + w * 0.55, y + h * 0.35, w * 0.1, h * 0.1, black, cameraX);
+    }
+    // EntityType.KOOPA = 2 or rex/koopa states
+    else if (entity.type === 2 || entity.state === 'koopa' || entity.state === 'rex') {
+        const purple = [0.38, 0.47, 0.85, 1.0];  // Rex color
+        const green = [0.35, 0.78, 0.44, 1.0];   // Koopa color
+        const yellow = [0.94, 0.82, 0.35, 1.0];  // Belly color
+        
+        const bodyColor = entity.state === 'rex' ? purple : green;
+        
+        // Body
+        drawRectangle(x, y + h * 0.3, w, h * 0.7, bodyColor, cameraX);
+        
+        // Belly
+        drawRectangle(x + w * 0.2, y + h * 0.4, w * 0.6, h * 0.5, yellow, cameraX);
+        
+        // Head
+        drawRectangle(x + w * 0.2, y, w * 0.6, h * 0.4, bodyColor, cameraX);
+        
+        // Eyes
+        drawRectangle(x + w * 0.3, y + h * 0.15, w * 0.15, h * 0.15, white, cameraX);
+        drawRectangle(x + w * 0.55, y + h * 0.15, w * 0.15, h * 0.15, white, cameraX);
+        
+        // Pupils
+        drawRectangle(x + w * 0.35, y + h * 0.18, w * 0.08, h * 0.1, black, cameraX);
+        drawRectangle(x + w * 0.6, y + h * 0.18, w * 0.08, h * 0.1, black, cameraX);
+    }
+    // EntityType.GOOMBA = 1 (fallback)
+    else {
         const brown = [0.53, 0.44, 0.00, 1.0];
-        const white = [1.00, 1.00, 1.00, 1.0];
-        const black = [0.00, 0.00, 0.00, 1.0];
         
         // Body
         drawRectangle(x, y, w, h, brown, cameraX);
@@ -327,5 +386,65 @@ export function sendKeyEvent(key, isDown) {
         dotNetHelper.invokeMethodAsync('OnKeyDown', key);
     } else {
         dotNetHelper.invokeMethodAsync('OnKeyUp', key);
+    }
+}
+
+// Sound support - simple Web Audio API implementation
+const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+const sounds = {};
+
+// Simple sound generator using Web Audio API
+function createSound(type, frequency, duration) {
+    const oscillator = audioContext.createOscillator();
+    const gainNode = audioContext.createGain();
+    
+    oscillator.connect(gainNode);
+    gainNode.connect(audioContext.destination);
+    
+    oscillator.type = type;
+    oscillator.frequency.value = frequency;
+    
+    gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
+    gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + duration);
+    
+    oscillator.start(audioContext.currentTime);
+    oscillator.stop(audioContext.currentTime + duration);
+}
+
+// Play sound effect
+export function playSound(soundName) {
+    try {
+        switch(soundName) {
+            case 'jump':
+                // Jump sound - rising pitch
+                createSound('square', 300, 0.1);
+                break;
+            case 'coin':
+                // Coin sound - two-tone high pitch
+                createSound('square', 988, 0.05);
+                setTimeout(() => createSound('square', 1319, 0.1), 50);
+                break;
+            case 'stomp':
+                // Enemy stomp - thump sound
+                createSound('square', 150, 0.1);
+                break;
+            case 'powerup':
+                // Power-up collect - ascending tones
+                createSound('sine', 523, 0.1);
+                setTimeout(() => createSound('sine', 659, 0.1), 100);
+                setTimeout(() => createSound('sine', 784, 0.1), 200);
+                setTimeout(() => createSound('sine', 1047, 0.2), 300);
+                break;
+            case 'powerup-appears':
+                // Power-up appears - quick ascending scale
+                createSound('sine', 523, 0.08);
+                setTimeout(() => createSound('sine', 659, 0.08), 80);
+                setTimeout(() => createSound('sine', 784, 0.08), 160);
+                break;
+            default:
+                console.log('Unknown sound:', soundName);
+        }
+    } catch (error) {
+        console.log('Sound error:', error);
     }
 }

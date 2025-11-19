@@ -322,6 +322,16 @@ public class Game1 : Game
                             // Collision from bottom (player jumping into block)
                             _player.Position = new Vector2(_player.Position.X, tileBottom);
                             _player.Velocity = new Vector2(_player.Velocity.X, 0);
+                            
+                            // Check if hitting question block from below
+                            if (tile == 3) // Question block
+                            {
+                                // Change to hit question block
+                                _levelData.Map[y][x] = 4;
+                                
+                                // Spawn mushroom
+                                SpawnMushroom(x, y);
+                            }
                         }
                         else if (minOverlap == overlapLeft && _player.Velocity.X > 0)
                         {
@@ -335,6 +345,24 @@ public class Game1 : Game
                             _player.Position = new Vector2(tileRight, _player.Position.Y);
                             _player.Velocity = new Vector2(0, _player.Velocity.Y);
                         }
+                    }
+                }
+                else if (tile == 12) // Coin tile
+                {
+                    // Check if player is overlapping coin
+                    float tileX = x * GameConstants.TILE_SIZE;
+                    float tileY = y * GameConstants.TILE_SIZE;
+                    float tileRight = tileX + GameConstants.TILE_SIZE;
+                    float tileBottom = tileY + GameConstants.TILE_SIZE;
+                    
+                    if (_player.Position.X < tileRight && 
+                        _player.Position.X + _player.Width > tileX &&
+                        _player.Position.Y < tileBottom && 
+                        _player.Position.Y + _player.Height > tileY)
+                    {
+                        _levelData.Map[y][x] = 0;
+                        _stats.Coins++;
+                        _stats.Score += 100;
                     }
                 }
             }
@@ -358,65 +386,127 @@ public class Game1 : Game
 
     private void UpdateEntities()
     {
-        int[] groundTiles = { 1, 2, 3, 5, 6, 7, 8, 9, 10 };
+        int[] groundTiles = { 1, 2, 3, 4, 5, 6, 7, 8, 9, 10 };
         
-        foreach (var entity in _entities)
+        for (int i = _entities.Count - 1; i >= 0; i--)
         {
+            var entity = _entities[i];
             if (entity.Dead) continue;
             
-            // Update entity movement
-            entity.Velocity = new Vector2(entity.Direction * 0.5f, entity.Velocity.Y);
-            entity.Velocity = new Vector2(entity.Velocity.X, entity.Velocity.Y + GameConstants.GRAVITY);
-            entity.Position += entity.Velocity;
-            
-            // Ground collision for enemies
-            int tileX = (int)(entity.Position.X / GameConstants.TILE_SIZE);
-            int tileY = (int)((entity.Position.Y + entity.Height) / GameConstants.TILE_SIZE);
-            
-            if (tileY >= 0 && tileY < _levelData.Map.Length)
+            // Handle mushroom power-ups
+            if (entity.Type == EntityType.MUSHROOM)
             {
-                var row = _levelData.Map[tileY];
-                if (row != null && tileX >= 0 && tileX < row.Length)
+                // Mushroom movement
+                entity.Velocity = new Vector2(entity.Direction * 1.2f, entity.Velocity.Y);
+                entity.Velocity = new Vector2(entity.Velocity.X, entity.Velocity.Y + GameConstants.GRAVITY);
+                entity.Position += entity.Velocity;
+                
+                // Ground collision
+                int tileX = (int)(entity.Position.X / GameConstants.TILE_SIZE);
+                int tileY = (int)((entity.Position.Y + entity.Height) / GameConstants.TILE_SIZE);
+                
+                if (tileY >= 0 && tileY < _levelData.Map.Length)
                 {
-                    if (Array.IndexOf(groundTiles, row[tileX]) >= 0)
+                    var row = _levelData.Map[tileY];
+                    if (row != null && tileX >= 0 && tileX < row.Length)
                     {
-                        float groundY = tileY * GameConstants.TILE_SIZE;
-                        if (entity.Position.Y + entity.Height > groundY)
+                        if (Array.IndexOf(groundTiles, row[tileX]) >= 0)
                         {
-                            entity.Position = new Vector2(entity.Position.X, groundY - entity.Height);
-                            entity.Velocity = new Vector2(entity.Velocity.X, 0);
+                            float groundY = tileY * GameConstants.TILE_SIZE;
+                            if (entity.Position.Y + entity.Height > groundY)
+                            {
+                                entity.Position = new Vector2(entity.Position.X, groundY - entity.Height);
+                                entity.Velocity = new Vector2(entity.Velocity.X, 0);
+                            }
                         }
                     }
                 }
-            }
-            
-            // Collision with player
-            if (CheckCollision(_player, entity))
-            {
-                if (_player.Velocity.Y > 0 && _player.Position.Y < entity.Position.Y)
+                
+                // Player collision with mushroom
+                if (CheckCollision(_player, entity))
                 {
-                    // Jump on enemy
-                    entity.Dead = true;
-                    
-                    // SMW spin jump gives smaller bounce
-                    if (_player.IsSpinJumping)
+                    _entities.RemoveAt(i);
+                    _player.PowerMode = "big";
+                    _player.Height = 24; // Grow taller
+                    _stats.Score += 1000;
+                    continue;
+                }
+            }
+            // Handle enemies
+            else
+            {
+                // Update entity movement
+                entity.Velocity = new Vector2(entity.Direction * 0.6f, entity.Velocity.Y);
+                entity.Velocity = new Vector2(entity.Velocity.X, entity.Velocity.Y + GameConstants.GRAVITY);
+                entity.Position += entity.Velocity;
+                
+                // Ground collision for enemies
+                int tileX = (int)(entity.Position.X / GameConstants.TILE_SIZE);
+                int tileY = (int)((entity.Position.Y + entity.Height) / GameConstants.TILE_SIZE);
+                
+                if (tileY >= 0 && tileY < _levelData.Map.Length)
+                {
+                    var row = _levelData.Map[tileY];
+                    if (row != null && tileX >= 0 && tileX < row.Length)
                     {
-                        _player.Velocity = new Vector2(_player.Velocity.X, -2.5f);
-                        _stats.Score += 200; // Bonus points for spin jump
-                    }
-                    else
-                    {
-                        _player.Velocity = new Vector2(_player.Velocity.X, -GameConstants.BOUNCE_FORCE);
-                        _stats.Score += 100;
+                        if (Array.IndexOf(groundTiles, row[tileX]) >= 0)
+                        {
+                            float groundY = tileY * GameConstants.TILE_SIZE;
+                            if (entity.Position.Y + entity.Height > groundY)
+                            {
+                                entity.Position = new Vector2(entity.Position.X, groundY - entity.Height);
+                                entity.Velocity = new Vector2(entity.Velocity.X, 0);
+                            }
+                        }
                     }
                 }
-                else if (!_player.IsSpinJumping)
+                
+                // Collision with player
+                if (CheckCollision(_player, entity))
                 {
-                    // Hit by enemy (spin jump protects you in SMW)
-                    OnPlayerDie();
+                    if (_player.Velocity.Y > 0 && _player.Position.Y < entity.Position.Y)
+                    {
+                        // Jump on enemy
+                        entity.Dead = true;
+                        
+                        // SMW spin jump gives smaller bounce
+                        if (_player.IsSpinJumping)
+                        {
+                            _player.Velocity = new Vector2(_player.Velocity.X, -2.5f);
+                            _stats.Score += 200; // Bonus points for spin jump
+                        }
+                        else
+                        {
+                            _player.Velocity = new Vector2(_player.Velocity.X, -GameConstants.BOUNCE_FORCE);
+                            _stats.Score += 100;
+                        }
+                    }
+                    else if (!_player.IsSpinJumping)
+                    {
+                        // Hit by enemy (spin jump protects you in SMW)
+                        OnPlayerDie();
+                    }
                 }
             }
         }
+    }
+    
+    private void SpawnMushroom(int blockX, int blockY)
+    {
+        var mushroom = new Entity
+        {
+            Id = _entities.Count + 1000,
+            Type = EntityType.MUSHROOM,
+            Position = new Vector2(blockX * GameConstants.TILE_SIZE, (blockY - 1) * GameConstants.TILE_SIZE),
+            Velocity = new Vector2(1.2f, -2f),
+            Width = 16,
+            Height = 16,
+            Dead = false,
+            Direction = 1,
+            State = "mushroom"
+        };
+        
+        _entities.Add(mushroom);
     }
 
     private bool CheckCollision(Entity a, Entity b)
@@ -623,6 +713,14 @@ public class Game1 : Game
                 DrawRectangle(position, size, size, GameConstants.Colors.HILL_GREEN);
                 DrawRectangle(position, size, size / 4, GameConstants.Colors.GRASS_TOP);
                 return;
+            case 12: // Coin - SMW style gold coin
+                // Coin body (gold circle-ish)
+                DrawRectangle(new Vector2(position.X + size / 4, position.Y + size / 4), size / 2, size / 2, GameConstants.Colors.COIN_GOLD);
+                // Coin shine effect
+                DrawRectangle(new Vector2(position.X + size / 3, position.Y + size / 3), size / 4, size / 4, Color.White);
+                // Coin outline for definition
+                DrawRectangleOutline(new Vector2(position.X + size / 4, position.Y + size / 4), size / 2, size / 2, GameConstants.Colors.COIN_OUTLINE, 1);
+                return;
             case 17: // Castle
                 DrawRectangle(position, size, size, new Color(180, 180, 180));
                 DrawRectangleOutline(position, size, size, new Color(80, 80, 80), 2);
@@ -734,6 +832,23 @@ public class Game1 : Game
                 // Feet (green)
                 DrawRectangle(new Vector2(screenX, screenY + height * 0.9f), (int)(width * 0.3f), (int)(height * 0.1f), GameConstants.Colors.KOOPA_GREEN);
                 DrawRectangle(new Vector2(screenX + width * 0.7f, screenY + height * 0.9f), (int)(width * 0.3f), (int)(height * 0.1f), GameConstants.Colors.KOOPA_GREEN);
+            }
+            else if (entity.State == "mushroom" || entity.Type == EntityType.MUSHROOM)
+            {
+                // Super Mushroom - Red with white spots
+                // Main mushroom cap (red)
+                DrawRectangle(new Vector2(screenX, screenY), (int)width, (int)(height * 0.6f), GameConstants.Colors.MUSHROOM_RED);
+                
+                // White spots on cap
+                DrawRectangle(new Vector2(screenX + width * 0.2f, screenY + height * 0.15f), (int)(width * 0.25f), (int)(height * 0.2f), GameConstants.Colors.MUSHROOM_SPOTS);
+                DrawRectangle(new Vector2(screenX + width * 0.55f, screenY + height * 0.15f), (int)(width * 0.25f), (int)(height * 0.2f), GameConstants.Colors.MUSHROOM_SPOTS);
+                
+                // Mushroom stem (white/cream)
+                DrawRectangle(new Vector2(screenX + width * 0.3f, screenY + height * 0.6f), (int)(width * 0.4f), (int)(height * 0.4f), GameConstants.Colors.MUSHROOM_SPOTS);
+                
+                // Eyes (simple black dots)
+                DrawRectangle(new Vector2(screenX + width * 0.35f, screenY + height * 0.35f), (int)(width * 0.1f), (int)(height * 0.1f), Color.Black);
+                DrawRectangle(new Vector2(screenX + width * 0.55f, screenY + height * 0.35f), (int)(width * 0.1f), (int)(height * 0.1f), Color.Black);
             }
             else
             {

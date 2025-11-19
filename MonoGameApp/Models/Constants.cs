@@ -180,65 +180,126 @@ public static class GameConstants
         // Message block at start (SMW has these)
         Set(10, 12, TileType.HARD_BLOCK);
         
-        // Early section - easier introduction
+        // Early section with coins
         Set(18, 10, TileType.QUESTION_BLOCK);
+        Set(19, 9, TileType.COIN); // Coin above
         Set(20, 10, TileType.QUESTION_BLOCK);
         Set(24, 7, TileType.QUESTION_BLOCK);
+        Set(24, 6, TileType.COIN); // Coin above
+        
+        // Floating coins
+        for (int i = 0; i < 3; i++)
+            Set(28 + i, 8, TileType.COIN);
         
         // First pipe (small)
         PlacePipe(32, 2);
         
-        // Row of ? blocks (coins)
+        // Question blocks with coins above
         for (int i = 0; i < 5; i++)
         {
             Set(40 + i, 10, TileType.QUESTION_BLOCK);
+            if (i % 2 == 1)
+                Set(40 + i, 9, TileType.COIN); // Coins above some blocks
         }
         
         // Second pipe (medium)
         PlacePipe(50, 3);
         
+        // Coin trail
+        for (int i = 0; i < 4; i++)
+            Set(54 + i, 7, TileType.COIN);
+        
         // Floating blocks section
         FillRect(58, 8, 4, 1, TileType.BRICK);
         Set(60, 5, TileType.QUESTION_BLOCK);
+        Set(60, 4, TileType.COIN); // Coin above
+        
+        // More floating coins
+        for (int i = 0; i < 5; i++)
+            Set(64 + i, 9, TileType.COIN);
         
         // Third pipe (tall)
         PlacePipe(70, 4);
         
+        // Coins in arc pattern
+        Set(76, 8, TileType.COIN);
+        Set(78, 7, TileType.COIN);
+        Set(80, 6, TileType.COIN);
+        Set(82, 7, TileType.COIN);
+        Set(84, 8, TileType.COIN);
+        
         // Gap section with floating platforms
         FillRect(86, 10, 3, 1, TileType.HARD_BLOCK);
         
+        // Coins around gap
+        Set(89, 9, TileType.COIN);
+        
         // After gap - more blocks
         Set(95, 10, TileType.QUESTION_BLOCK);
+        Set(96, 9, TileType.COIN);
         Set(98, 10, TileType.QUESTION_BLOCK);
+        Set(99, 9, TileType.COIN);
         Set(101, 10, TileType.QUESTION_BLOCK);
         
         // Fourth pipe
         PlacePipe(108, 3);
         
+        // Coins around pipe
+        Set(111, 10, TileType.COIN);
+        Set(113, 9, TileType.COIN);
+        Set(115, 8, TileType.COIN);
+        
         // Mid-section floating platform
         FillRect(118, 8, 6, 1, TileType.BRICK);
-        Set(121, 5, TileType.QUESTION_BLOCK); // High coin block
+        Set(121, 5, TileType.QUESTION_BLOCK);
+        Set(121, 4, TileType.COIN);
         
-        // Row of blocks
+        // Alternating blocks with coins
         for (int i = 0; i < 8; i++)
         {
             Set(130 + i, 10, i % 2 == 0 ? TileType.BRICK : TileType.QUESTION_BLOCK);
+            if (i % 2 == 0 && i > 0 && i < 7)
+                Set(130 + i, 9, TileType.COIN);
         }
+        
+        // More floating coins
+        for (int i = 0; i < 4; i++)
+            Set(140 + i, 8, TileType.COIN);
         
         // Fifth pipe (tall)
         PlacePipe(145, 4);
         
-        // Stair section (SMW style - more gradual)
+        // Coins on stairs
         CreateStair(155, 5, 1);
+        Set(157, 10, TileType.COIN);
+        Set(159, 8, TileType.COIN);
         FillRect(160, 8, 8, 1, TileType.HARD_BLOCK); // Platform on top
+        // Coins on platform
+        Set(162, 7, TileType.COIN);
+        Set(164, 7, TileType.COIN);
+        Set(166, 7, TileType.COIN);
         CreateStair(168, 5, -1);
         
         // More pipes
         PlacePipe(178, 3);
+        
+        // Final coin trail
+        for (int i = 0; i < 5; i++)
+            Set(182 + i, 9, TileType.COIN);
+        
         PlacePipe(188, 4);
+        
+        // Pre-goal coins
+        Set(193, 10, TileType.COIN);
+        Set(194, 9, TileType.COIN);
+        Set(195, 8, TileType.COIN);
         
         // Final stair to goal
         CreateStair(196, 8, 1);
+        
+        // Victory coins
+        Set(205, 10, TileType.COIN);
+        Set(207, 9, TileType.COIN);
         
         // Goal post (SMW style - tape and post)
         Set(210, 12, TileType.HARD_BLOCK);
