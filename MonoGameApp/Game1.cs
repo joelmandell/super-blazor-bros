@@ -175,7 +175,7 @@ public class Game1 : Game
             Coins = 0, 
             Time = 400, 
             Lives = 3, 
-            World = "1-1" 
+            World = "YI1" // Yoshi's Island 1
         };
         
         _levelData = new LevelData 
@@ -217,12 +217,23 @@ public class Game1 : Game
             _player.Velocity = new Vector2(maxSpeed * Math.Sign(_player.Velocity.X), _player.Velocity.Y);
         }
         
-        // Jumping
+        // Jumping - SMW style with spin jump
         if ((_currentKeyboardState.IsKeyDown(Keys.Space) || _currentKeyboardState.IsKeyDown(Keys.Up)) && _player.Grounded)
         {
-            _player.Velocity = new Vector2(_player.Velocity.X, -GameConstants.JUMP_FORCE);
+            // Check if A key is held for spin jump (SMW feature)
+            bool spinJump = _currentKeyboardState.IsKeyDown(Keys.A);
+            float jumpForce = spinJump ? GameConstants.SPIN_JUMP_FORCE : GameConstants.JUMP_FORCE;
+            
+            _player.Velocity = new Vector2(_player.Velocity.X, -jumpForce);
             _player.Grounded = false;
             _player.IsJumping = true;
+            _player.IsSpinJumping = spinJump;
+        }
+        
+        // Reset spin jump when grounded
+        if (_player.Grounded)
+        {
+            _player.IsSpinJumping = false;
         }
         
         // Gravity
@@ -386,12 +397,22 @@ public class Game1 : Game
                 {
                     // Jump on enemy
                     entity.Dead = true;
-                    _player.Velocity = new Vector2(_player.Velocity.X, -3);
-                    _stats.Score += 100;
+                    
+                    // SMW spin jump gives smaller bounce
+                    if (_player.IsSpinJumping)
+                    {
+                        _player.Velocity = new Vector2(_player.Velocity.X, -2.5f);
+                        _stats.Score += 200; // Bonus points for spin jump
+                    }
+                    else
+                    {
+                        _player.Velocity = new Vector2(_player.Velocity.X, -GameConstants.BOUNCE_FORCE);
+                        _stats.Score += 100;
+                    }
                 }
-                else
+                else if (!_player.IsSpinJumping)
                 {
-                    // Hit by enemy
+                    // Hit by enemy (spin jump protects you in SMW)
                     OnPlayerDie();
                 }
             }
@@ -457,14 +478,17 @@ public class Game1 : Game
 
     private void DrawMenu()
     {
-        string title = "SUPER BLAZOR BROS";
-        DrawText(title, new Vector2(GameConstants.SCALED_SCREEN_WIDTH / 2 - 200, 150), Color.White, 2f);
+        string title = "SUPER MARIO WORLD";
+        DrawText(title, new Vector2(GameConstants.SCALED_SCREEN_WIDTH / 2 - 200, 150), Color.Yellow, 2f);
+        
+        string subtitle = "YOSHI'S ISLAND 1";
+        DrawText(subtitle, new Vector2(GameConstants.SCALED_SCREEN_WIDTH / 2 - 150, 220), Color.White, 1.5f);
         
         string start = "PRESS ENTER TO START";
-        DrawText(start, new Vector2(GameConstants.SCALED_SCREEN_WIDTH / 2 - 150, 300), Color.White, 1f);
+        DrawText(start, new Vector2(GameConstants.SCALED_SCREEN_WIDTH / 2 - 150, 320), Color.White, 1f);
         
         string controls = "CONTROLS: ARROWS + SPACE + SHIFT";
-        DrawText(controls, new Vector2(GameConstants.SCALED_SCREEN_WIDTH / 2 - 180, 400), Color.Yellow, 1f);
+        DrawText(controls, new Vector2(GameConstants.SCALED_SCREEN_WIDTH / 2 - 180, 400), new Color(144, 232, 152), 1f);
     }
 
     private void DrawGame()
@@ -506,34 +530,102 @@ public class Game1 : Game
         
         switch (tile)
         {
-            case 1: // Ground
-                color = GameConstants.Colors.GROUND;
-                break;
-            case 2: // Brick
-                color = GameConstants.Colors.BRICK;
+            case 1: // Ground - SMW style with more detail
+                // Main ground color
+                DrawRectangle(position, size, size, GameConstants.Colors.GROUND);
+                // Add highlights and shadows for depth
+                DrawRectangle(position, size, size / 4, GameConstants.Colors.GROUND_HIGHLIGHT);
+                DrawRectangle(new Vector2(position.X, position.Y + size - size / 4), size, size / 4, GameConstants.Colors.GROUND_DARK);
+                // Add some texture detail
+                DrawRectangle(new Vector2(position.X + 2, position.Y + size / 3), size / 3, 2, GameConstants.Colors.GROUND_DARK);
+                DrawRectangle(new Vector2(position.X + size - size / 3, position.Y + size / 2), size / 4, 2, GameConstants.Colors.GROUND_DARK);
+                return;
+            case 2: // Brick - SMW golden/yellow brick with more detail
+                DrawRectangle(position, size, size, GameConstants.Colors.BRICK);
+                // Border and details
+                DrawRectangleOutline(position, size, size, GameConstants.Colors.BRICK_DARK, 2);
+                // Inner detail lines (cross pattern)
+                DrawRectangle(new Vector2(position.X + size / 2 - 1, position.Y + 4), 2, size - 8, GameConstants.Colors.BRICK_DARK);
+                DrawRectangle(new Vector2(position.X + 4, position.Y + size / 2 - 1), size - 8, 2, GameConstants.Colors.BRICK_DARK);
+                return;
+            case 3: // Question Block - SMW style
+                DrawRectangle(position, size, size, GameConstants.Colors.QUESTION);
+                DrawRectangleOutline(position, size, size, GameConstants.Colors.QUESTION_DARK, 2);
+                // Draw larger, more detailed question mark
+                int qSize = size / 3;
+                // Question mark stem
+                DrawRectangle(new Vector2(position.X + size / 2 - qSize / 4, position.Y + size / 2 + qSize / 4), qSize / 2, qSize / 2, GameConstants.Colors.QUESTION_DARK);
+                // Question mark curve
+                DrawRectangle(new Vector2(position.X + size / 2 - qSize / 2, position.Y + size / 4), qSize, qSize, GameConstants.Colors.QUESTION_DARK);
+                // Question mark dot
+                DrawRectangle(new Vector2(position.X + size / 2 - qSize / 4, position.Y + size - size / 3), qSize / 2, qSize / 3, GameConstants.Colors.QUESTION_DARK);
+                return;
+            case 5: // Hard Block - SMW gray/brown block
+                color = GameConstants.Colors.MESSAGE_BLOCK;
                 DrawRectangle(position, size, size, color);
-                DrawRectangleOutline(position, size, size, GameConstants.Colors.BLACK, 2);
+                DrawRectangleOutline(position, size, size, GameConstants.Colors.MESSAGE_BLOCK_OUTLINE, 2);
                 return;
-            case 3: // Question Block
-                color = GameConstants.Colors.QUESTION;
-                DrawRectangle(position, size, size, color);
-                // Draw question mark
-                DrawText("?", position + new Vector2(size / 2 - 8, size / 2 - 12), GameConstants.Colors.BLACK, 1.5f);
+            case 6: // Pipe Left
+            case 7: // Pipe Right
+            case 8: // Pipe Top Left
+            case 9: // Pipe Top Right
+                // SMW pipes have more detail with highlights
+                bool isTop = (tile == 8 || tile == 9);
+                bool isLeft = (tile == 6 || tile == 8);
+                
+                DrawRectangle(position, size, size, GameConstants.Colors.PIPE);
+                
+                // Add highlight on left side, shadow on right
+                if (isLeft)
+                {
+                    DrawRectangle(position, size / 4, size, GameConstants.Colors.PIPE_HIGHLIGHT);
+                }
+                else
+                {
+                    DrawRectangle(new Vector2(position.X + size - size / 4, position.Y), size / 4, size, GameConstants.Colors.PIPE_DARK);
+                }
+                
+                // Pipe rim for top pieces
+                if (isTop)
+                {
+                    DrawRectangle(new Vector2(position.X, position.Y), size, size / 3, GameConstants.Colors.PIPE_HIGHLIGHT);
+                    DrawRectangleOutline(position, size, size / 3, GameConstants.Colors.PIPE_DARK, 1);
+                }
                 return;
-            case 5: // Hard Block
-                color = new Color(128, 128, 128);
-                break;
-            case 6:
-            case 7:
-            case 8:
-            case 9: // Pipe
-                color = GameConstants.Colors.PIPE;
-                break;
-            case 10: // Pole
-                DrawRectangle(new Vector2(position.X + size / 2 - 2, position.Y), 4, size, Color.Gold);
+            case 10: // Pole - SMW white pole with red stripes
+                DrawRectangle(new Vector2(position.X + size / 2 - 3, position.Y), 6, size, Color.White);
+                DrawRectangle(new Vector2(position.X + size / 2 - 3, position.Y), 6, size / 4, Color.Red);
                 return;
-            case 11: // Flag
-                DrawRectangle(new Vector2(position.X + size / 2, position.Y), size / 2, size / 2, Color.Red);
+            case 11: // Flag - SMW checkered flag
+                DrawRectangle(new Vector2(position.X + size / 2, position.Y + 4), size / 2, size / 2, Color.White);
+                // Checkered pattern
+                for (int i = 0; i < 2; i++)
+                {
+                    for (int j = 0; j < 2; j++)
+                    {
+                        if ((i + j) % 2 == 0)
+                        {
+                            DrawRectangle(new Vector2(position.X + size / 2 + i * size / 4, position.Y + 4 + j * size / 4), 
+                                          size / 4, size / 4, Color.Black);
+                        }
+                    }
+                }
+                return;
+            case 14: // Cloud
+                DrawRectangle(position, size, size, GameConstants.Colors.CLOUD);
+                DrawRectangleOutline(position, size, size, GameConstants.Colors.CLOUD_OUTLINE, 1);
+                return;
+            case 15: // Bush
+                DrawRectangle(position, size, size, GameConstants.Colors.BUSH_GREEN);
+                DrawRectangle(position, size, size / 3, GameConstants.Colors.BUSH_DARK);
+                return;
+            case 16: // Hill
+                DrawRectangle(position, size, size, GameConstants.Colors.HILL_GREEN);
+                DrawRectangle(position, size, size / 4, GameConstants.Colors.GRASS_TOP);
+                return;
+            case 17: // Castle
+                DrawRectangle(position, size, size, new Color(180, 180, 180));
+                DrawRectangleOutline(position, size, size, new Color(80, 80, 80), 2);
                 return;
         }
         
@@ -547,14 +639,40 @@ public class Game1 : Game
         float width = _player.Width * GameConstants.SCALE;
         float height = _player.Height * GameConstants.SCALE;
         
-        // Simple Mario sprite
-        DrawRectangle(new Vector2(screenX, screenY), (int)width, (int)height, GameConstants.Colors.MARIO_RED);
+        // SMW Mario sprite - more detailed and colorful
+        // Hat (red cap with white M emblem area)
+        DrawRectangle(new Vector2(screenX + width * 0.15f, screenY), (int)(width * 0.7f), (int)(height * 0.25f), GameConstants.Colors.MARIO_RED);
         
-        // Cap
-        DrawRectangle(new Vector2(screenX + 2, screenY), (int)(width - 4), (int)(height / 4), GameConstants.Colors.MARIO_RED);
+        // Face/Head
+        DrawRectangle(new Vector2(screenX + width * 0.2f, screenY + height * 0.25f), (int)(width * 0.6f), (int)(height * 0.3f), GameConstants.Colors.MARIO_SKIN);
         
-        // Face
-        DrawRectangle(new Vector2(screenX + 2, screenY + height / 4), (int)(width - 4), (int)(height / 3), GameConstants.Colors.MARIO_SKIN);
+        // Eyes (white)
+        float eyeSize = width * 0.15f;
+        DrawRectangle(new Vector2(screenX + width * 0.3f, screenY + height * 0.35f), (int)eyeSize, (int)(eyeSize * 0.8f), GameConstants.Colors.MARIO_WHITE);
+        DrawRectangle(new Vector2(screenX + width * 0.55f, screenY + height * 0.35f), (int)eyeSize, (int)(eyeSize * 0.8f), GameConstants.Colors.MARIO_WHITE);
+        
+        // Pupils (black)
+        DrawRectangle(new Vector2(screenX + width * 0.35f, screenY + height * 0.38f), (int)(eyeSize * 0.5f), (int)(eyeSize * 0.6f), GameConstants.Colors.BLACK);
+        DrawRectangle(new Vector2(screenX + width * 0.6f, screenY + height * 0.38f), (int)(eyeSize * 0.5f), (int)(eyeSize * 0.6f), GameConstants.Colors.BLACK);
+        
+        // Body - Blue overalls
+        DrawRectangle(new Vector2(screenX + width * 0.25f, screenY + height * 0.55f), (int)(width * 0.5f), (int)(height * 0.35f), GameConstants.Colors.MARIO_BLUE);
+        
+        // Overalls straps (blue lines on chest)
+        DrawRectangle(new Vector2(screenX + width * 0.3f, screenY + height * 0.5f), (int)(width * 0.15f), (int)(height * 0.15f), GameConstants.Colors.MARIO_BLUE);
+        DrawRectangle(new Vector2(screenX + width * 0.55f, screenY + height * 0.5f), (int)(width * 0.15f), (int)(height * 0.15f), GameConstants.Colors.MARIO_BLUE);
+        
+        // Arms (skin colored)
+        DrawRectangle(new Vector2(screenX, screenY + height * 0.5f), (int)(width * 0.25f), (int)(height * 0.25f), GameConstants.Colors.MARIO_SKIN);
+        DrawRectangle(new Vector2(screenX + width * 0.75f, screenY + height * 0.5f), (int)(width * 0.25f), (int)(height * 0.25f), GameConstants.Colors.MARIO_SKIN);
+        
+        // Gloves (white)
+        DrawRectangle(new Vector2(screenX, screenY + height * 0.65f), (int)(width * 0.2f), (int)(height * 0.15f), GameConstants.Colors.MARIO_WHITE);
+        DrawRectangle(new Vector2(screenX + width * 0.8f, screenY + height * 0.65f), (int)(width * 0.2f), (int)(height * 0.15f), GameConstants.Colors.MARIO_WHITE);
+        
+        // Legs/Shoes (brown)
+        DrawRectangle(new Vector2(screenX + width * 0.25f, screenY + height * 0.9f), (int)(width * 0.2f), (int)(height * 0.1f), GameConstants.Colors.MARIO_BROWN);
+        DrawRectangle(new Vector2(screenX + width * 0.55f, screenY + height * 0.9f), (int)(width * 0.2f), (int)(height * 0.1f), GameConstants.Colors.MARIO_BROWN);
     }
 
     private void DrawEntities()
@@ -568,12 +686,62 @@ public class Game1 : Game
             float width = entity.Width * GameConstants.SCALE;
             float height = entity.Height * GameConstants.SCALE;
             
-            // Simple Goomba sprite
-            DrawRectangle(new Vector2(screenX, screenY), (int)width, (int)height, GameConstants.Colors.GOOMBA);
-            
-            // Eyes
-            DrawRectangle(new Vector2(screenX + width * 0.2f, screenY + height * 0.3f), (int)(width * 0.2f), (int)(height * 0.2f), Color.White);
-            DrawRectangle(new Vector2(screenX + width * 0.6f, screenY + height * 0.3f), (int)(width * 0.2f), (int)(height * 0.2f), Color.White);
+            if (entity.State == "rex")
+            {
+                // Rex - Purple dinosaur enemy from SMW
+                // Body (purple)
+                DrawRectangle(new Vector2(screenX, screenY + height * 0.3f), (int)width, (int)(height * 0.7f), GameConstants.Colors.REX);
+                
+                // Belly (yellow)
+                DrawRectangle(new Vector2(screenX + width * 0.2f, screenY + height * 0.4f), (int)(width * 0.6f), (int)(height * 0.5f), GameConstants.Colors.REX_BELLY);
+                
+                // Head (purple)
+                DrawRectangle(new Vector2(screenX + width * 0.2f, screenY), (int)(width * 0.6f), (int)(height * 0.4f), GameConstants.Colors.REX);
+                
+                // Eyes (white with black pupils)
+                DrawRectangle(new Vector2(screenX + width * 0.3f, screenY + height * 0.15f), (int)(width * 0.15f), (int)(height * 0.15f), Color.White);
+                DrawRectangle(new Vector2(screenX + width * 0.55f, screenY + height * 0.15f), (int)(width * 0.15f), (int)(height * 0.15f), Color.White);
+                DrawRectangle(new Vector2(screenX + width * 0.35f, screenY + height * 0.18f), (int)(width * 0.08f), (int)(height * 0.1f), Color.Black);
+                DrawRectangle(new Vector2(screenX + width * 0.6f, screenY + height * 0.18f), (int)(width * 0.08f), (int)(height * 0.1f), Color.Black);
+                
+                // Snout
+                DrawRectangle(new Vector2(screenX + width * 0.65f, screenY + height * 0.25f), (int)(width * 0.2f), (int)(height * 0.1f), GameConstants.Colors.REX_BELLY);
+                
+                // Feet
+                DrawRectangle(new Vector2(screenX + width * 0.1f, screenY + height * 0.9f), (int)(width * 0.25f), (int)(height * 0.1f), GameConstants.Colors.REX);
+                DrawRectangle(new Vector2(screenX + width * 0.65f, screenY + height * 0.9f), (int)(width * 0.25f), (int)(height * 0.1f), GameConstants.Colors.REX);
+            }
+            else if (entity.State == "koopa")
+            {
+                // Koopa Troopa - Green turtle enemy from SMW
+                // Shell (green with pattern)
+                DrawRectangle(new Vector2(screenX, screenY + height * 0.4f), (int)width, (int)(height * 0.6f), GameConstants.Colors.KOOPA_SHELL);
+                DrawRectangleOutline(new Vector2(screenX, screenY + height * 0.4f), (int)width, (int)(height * 0.6f), GameConstants.Colors.PIPE_DARK, 2);
+                
+                // Shell detail (hexagon pattern - simplified)
+                DrawRectangle(new Vector2(screenX + width * 0.3f, screenY + height * 0.5f), (int)(width * 0.4f), (int)(height * 0.3f), Color.White);
+                DrawRectangleOutline(new Vector2(screenX + width * 0.3f, screenY + height * 0.5f), (int)(width * 0.4f), (int)(height * 0.3f), GameConstants.Colors.PIPE_DARK, 1);
+                
+                // Head (yellow/orange)
+                DrawRectangle(new Vector2(screenX + width * 0.25f, screenY), (int)(width * 0.5f), (int)(height * 0.45f), GameConstants.Colors.REX_BELLY);
+                
+                // Eyes
+                DrawRectangle(new Vector2(screenX + width * 0.3f, screenY + height * 0.15f), (int)(width * 0.15f), (int)(height * 0.15f), Color.White);
+                DrawRectangle(new Vector2(screenX + width * 0.55f, screenY + height * 0.15f), (int)(width * 0.15f), (int)(height * 0.15f), Color.White);
+                DrawRectangle(new Vector2(screenX + width * 0.35f, screenY + height * 0.18f), (int)(width * 0.08f), (int)(height * 0.1f), Color.Black);
+                DrawRectangle(new Vector2(screenX + width * 0.6f, screenY + height * 0.18f), (int)(width * 0.08f), (int)(height * 0.1f), Color.Black);
+                
+                // Feet (green)
+                DrawRectangle(new Vector2(screenX, screenY + height * 0.9f), (int)(width * 0.3f), (int)(height * 0.1f), GameConstants.Colors.KOOPA_GREEN);
+                DrawRectangle(new Vector2(screenX + width * 0.7f, screenY + height * 0.9f), (int)(width * 0.3f), (int)(height * 0.1f), GameConstants.Colors.KOOPA_GREEN);
+            }
+            else
+            {
+                // Fallback - draw as Goomba if state not specified
+                DrawRectangle(new Vector2(screenX, screenY), (int)width, (int)height, new Color(228, 92, 16));
+                DrawRectangle(new Vector2(screenX + width * 0.2f, screenY + height * 0.3f), (int)(width * 0.2f), (int)(height * 0.2f), Color.White);
+                DrawRectangle(new Vector2(screenX + width * 0.6f, screenY + height * 0.3f), (int)(width * 0.2f), (int)(height * 0.2f), Color.White);
+            }
         }
     }
 

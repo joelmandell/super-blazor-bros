@@ -62,8 +62,9 @@ public class Entity
 
 public class Player : Entity
 {
-    public string PowerMode { get; set; } = "small"; // small, big, fire
+    public string PowerMode { get; set; } = "small"; // small, big, fire, cape
     public bool IsJumping { get; set; }
+    public bool IsSpinJumping { get; set; } // SMW spin jump
     public int Invulnerable { get; set; }
 }
 
