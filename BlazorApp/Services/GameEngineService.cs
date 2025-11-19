@@ -62,7 +62,19 @@ public class GameEngineService : IAsyncDisposable
             World = customLevel != null ? "1-AI" : "1-1"
         };
         
-        _levelData = customLevel ?? new LevelData { Map = GameConstants.GetDefaultLevelMap() };
+        if (customLevel == null)
+        {
+            _levelData = new LevelData 
+            { 
+                Map = GameConstants.GetDefaultLevelMap(),
+                Entities = GameConstants.GetDefaultEntities()
+            };
+        }
+        else
+        {
+            _levelData = customLevel;
+        }
+        
         InitializePlayer();
         _entities = new List<Entity>(_levelData.Entities);
         _cameraX = 0;
@@ -321,6 +333,8 @@ public class GameEngineService : IAsyncDisposable
     
     private void UpdateEntities()
     {
+        int[] groundTiles = { 1, 2, 3, 5, 6, 7, 8, 9 };
+        
         for (int i = _entities.Count - 1; i >= 0; i--)
         {
             var entity = _entities[i];
@@ -332,6 +346,27 @@ public class GameEngineService : IAsyncDisposable
                 entity.Vel.Y += GameConstants.GRAVITY;
                 entity.Pos.Y += entity.Vel.Y;
                 
+                // Ground collision for enemies
+                int tileX = (int)(entity.Pos.X / GameConstants.TILE_SIZE);
+                int tileY = (int)((entity.Pos.Y + entity.Height) / GameConstants.TILE_SIZE);
+                
+                if (tileY >= 0 && tileY < _levelData.Map.Length)
+                {
+                    if (_levelData.Map[tileY] != null && tileX >= 0 && tileX < _levelData.Map[tileY].Length)
+                    {
+                        if (Array.IndexOf(groundTiles, _levelData.Map[tileY][tileX]) >= 0)
+                        {
+                            double groundY = tileY * GameConstants.TILE_SIZE;
+                            if (entity.Pos.Y + entity.Height > groundY)
+                            {
+                                entity.Pos.Y = groundY - entity.Height;
+                                entity.Vel.Y = 0;
+                            }
+                        }
+                    }
+                }
+                
+                // Player collision
                 if (Math.Abs(_player.Pos.X - entity.Pos.X) < 16 && 
                     Math.Abs(_player.Pos.Y - entity.Pos.Y) < 16)
                 {

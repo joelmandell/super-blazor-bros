@@ -3,7 +3,6 @@
 @using SuperBlazorBros.Services
 @using Microsoft.JSInterop
 @inject IJSRuntime JSRuntime
-@inject GeminiService GeminiService
 @inject GameEngineService GameEngine
 @implements IDisposable
 
@@ -40,47 +39,16 @@
             <div class="overlay menu-overlay">
                 <h1 class="game-title">SUPER BLAZOR BROS</h1>
 
-                @if (!showKeyInput)
-                {
-                    <button class="menu-button primary" @onclick="StartGame">
-                        STARTA SPEL (1-1)
-                    </button>
-                    <button class="menu-button ai-button" @onclick="HandleAiGenerate">
-                        <span>✨</span> SKAPA AI-BANA
-                    </button>
-                    <button class="api-key-link" @onclick="() => showKeyInput = true">
-                        @(string.IsNullOrEmpty(apiKey) ? "Ange API-nyckel" : "Ändra API-nyckel")
-                    </button>
+                <button class="menu-button primary" @onclick="StartGame">
+                    STARTA SPEL (1-1)
+                </button>
 
-                    <div class="controls-info">
-                        <p class="controls-title">KONTROLLER:</p>
-                        <p>PILLAR / D-PAD för att gå</p>
-                        <p><span class="highlight">SPACE / A</span> för att HOPPA</p>
-                        <p><span class="highlight">SHIFT / B</span> för att SPRINGA/SKJUTA</p>
-                    </div>
-                }
-                else
-                {
-                    <div class="api-key-dialog">
-                        <h2 class="dialog-title">Gemini API Nyckel</h2>
-                        <p class="dialog-text">
-                            För att använda AI-funktionerna behöver du en gratis API-nyckel från Google AI Studio. 
-                            Nyckeln sparas i din webbläsare.
-                        </p>
-                        <input type="password" 
-                               class="api-key-input" 
-                               placeholder="Klistra in nyckel här..." 
-                               @bind="apiKey"
-                               @bind:event="oninput" />
-                        <div class="dialog-buttons">
-                            <button class="dialog-button save-button" @onclick="SaveApiKey">Spara</button>
-                            <button class="dialog-button cancel-button" @onclick="() => showKeyInput = false">Avbryt</button>
-                        </div>
-                        <a href="https://aistudio.google.com/app/apikey" target="_blank" class="api-key-link-external">
-                            Hämta nyckel här
-                        </a>
-                    </div>
-                }
+                <div class="controls-info">
+                    <p class="controls-title">KONTROLLER:</p>
+                    <p>PILLAR / D-PAD för att gå</p>
+                    <p><span class="highlight">SPACE / A</span> för att HOPPA</p>
+                    <p><span class="highlight">SHIFT / B</span> för att SPRINGA/SKJUTA</p>
+                </div>
             </div>
         }
 
@@ -109,7 +77,6 @@
                 <p class="score-text">POÄNG: @Stats.Score</p>
                 <div class="victory-buttons">
                     <button class="victory-button" @onclick="StartGame">SPELA IGEN</button>
-                    <button class="victory-button ai-button" @onclick="HandleAiGenerate">NÄSTA BANA (AI)</button>
                 </div>
             </div>
         }
@@ -166,14 +133,9 @@
     private GameStatus Status = GameStatus.MENU;
     private GameStats Stats = new GameStats();
     private string loadingText = "";
-    private string apiKey = "";
-    private bool showKeyInput = false;
 
     protected override async Task OnInitializedAsync()
     {
-        // Load API key from local storage
-        apiKey = await JSRuntime.InvokeAsync<string>("localStorage.getItem", "gemini_api_key") ?? "";
-        
         // Subscribe to game engine events
         GameEngine.OnStateChanged += HandleGameStateChanged;
         GameEngine.OnStatsChanged += HandleStatsChanged;
@@ -201,52 +163,6 @@
         
         Status = GameEngine.Status;
         Stats = GameEngine.Stats;
-        StateHasChanged();
-    }
-
-    private async Task HandleAiGenerate()
-    {
-        if (string.IsNullOrEmpty(apiKey))
-        {
-            showKeyInput = true;
-            Status = GameStatus.MENU;
-            StateHasChanged();
-            return;
-        }
-
-        loadingText = "Gemini bygger en bana...";
-        Status = GameStatus.LOADING;
-        StateHasChanged();
-
-        try
-        {
-            var data = await GeminiService.GenerateLevelAsync(apiKey);
-
-            if (data != null)
-            {
-                await GameEngine.StartGameAsync(data);
-                Status = GameEngine.Status;
-                Stats = GameEngine.Stats;
-                StateHasChanged();
-            }
-            else
-            {
-                Status = GameStatus.MENU;
-                StateHasChanged();
-            }
-        }
-        catch (Exception ex)
-        {
-            Console.WriteLine($"Error generating level: {ex.Message}");
-            Status = GameStatus.MENU;
-            StateHasChanged();
-        }
-    }
-
-    private async Task SaveApiKey()
-    {
-        await JSRuntime.InvokeVoidAsync("localStorage.setItem", "gemini_api_key", apiKey);
-        showKeyInput = false;
         StateHasChanged();
     }
 

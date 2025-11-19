@@ -45,11 +45,15 @@ public class Game1 : Game
         _levelData = new LevelData 
         { 
             Map = GameConstants.GetDefaultLevelMap(),
+            Entities = GameConstants.GetDefaultEntities(),
             BackgroundColor = GameConstants.Colors.SKY
         };
         
         // Initialize player
         InitializePlayer();
+        
+        // Initialize entities list
+        _entities = new List<Entity>(_levelData.Entities);
 
         base.Initialize();
     }
@@ -177,6 +181,7 @@ public class Game1 : Game
         _levelData = new LevelData 
         { 
             Map = GameConstants.GetDefaultLevelMap(),
+            Entities = GameConstants.GetDefaultEntities(),
             BackgroundColor = GameConstants.Colors.SKY
         };
         
@@ -312,13 +317,39 @@ public class Game1 : Game
 
     private void UpdateEntities()
     {
+        int[] groundTiles = { 1, 2, 3, 5, 6, 7, 8, 9, 10 };
+        
         foreach (var entity in _entities)
         {
             if (entity.Dead) continue;
             
+            // Update entity movement
+            entity.Velocity = new Vector2(entity.Direction * 0.5f, entity.Velocity.Y);
+            entity.Velocity = new Vector2(entity.Velocity.X, entity.Velocity.Y + GameConstants.GRAVITY);
             entity.Position += entity.Velocity;
             
-            // Simple collision with player
+            // Ground collision for enemies
+            int tileX = (int)(entity.Position.X / GameConstants.TILE_SIZE);
+            int tileY = (int)((entity.Position.Y + entity.Height) / GameConstants.TILE_SIZE);
+            
+            if (tileY >= 0 && tileY < _levelData.Map.Length)
+            {
+                var row = _levelData.Map[tileY];
+                if (row != null && tileX >= 0 && tileX < row.Length)
+                {
+                    if (Array.IndexOf(groundTiles, row[tileX]) >= 0)
+                    {
+                        float groundY = tileY * GameConstants.TILE_SIZE;
+                        if (entity.Position.Y + entity.Height > groundY)
+                        {
+                            entity.Position = new Vector2(entity.Position.X, groundY - entity.Height);
+                            entity.Velocity = new Vector2(entity.Velocity.X, 0);
+                        }
+                    }
+                }
+            }
+            
+            // Collision with player
             if (CheckCollision(_player, entity))
             {
                 if (_player.Velocity.Y > 0 && _player.Position.Y < entity.Position.Y)

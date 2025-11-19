@@ -13,6 +13,7 @@ The game has been migrated from JavaScript/Canvas to **MonoGame**, a professiona
 - 🎯 Authentic NES-style physics
 - 🖥️ Cross-platform desktop support (Windows, Linux, macOS)
 - 📊 HUD with score, coins, world, and time
+- 👾 Enemies (Goombas) throughout the level
 - 🏁 Complete level with victory condition
 
 ### Quick Start
@@ -56,9 +57,9 @@ The Blazor app now runs with **MonoGame-style C# game engine as WebAssembly**!
 
 ### Blazor Features
 - 🎮 **Pure C# game logic** running as WebAssembly (no JavaScript game code!)
-- 🤖 AI-generated levels with Google Gemini 2.0 Flash
 - 📱 Web-based with touch controls
 - 🌐 Runs in browser via WebAssembly
+- 👾 Enemies (Goombas) throughout the level
 - ⚡ MonoGame-inspired architecture adapted for the browser
 
 ### Running Blazor Version

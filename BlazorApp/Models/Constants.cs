@@ -185,4 +185,35 @@ public static class GameConstants
 
         return map;
     }
+
+    // Generate default entities (enemies) for the level
+    public static List<Entity> GetDefaultEntities()
+    {
+        var entities = new List<Entity>();
+        var entityId = 1000;
+        
+        // Ground level Y position (row 13 is ground, so entities at row 12)
+        const int groundY = 12 * TILE_SIZE;
+        
+        // Place Goombas at strategic positions throughout the level
+        var enemyPositions = new[] { 22, 40, 51, 80, 82, 97, 115, 125, 140, 160, 170 };
+        
+        foreach (var x in enemyPositions)
+        {
+            entities.Add(new Entity
+            {
+                Id = entityId++,
+                Type = EntityType.GOOMBA,
+                Pos = new Vector2D(x * TILE_SIZE, groundY),
+                Vel = new Vector2D(-0.5, 0),
+                Width = 16,
+                Height = 16,
+                Dead = false,
+                Grounded = false,
+                Direction = -1
+            });
+        }
+        
+        return entities;
+    }
 }
