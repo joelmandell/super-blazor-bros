@@ -385,10 +385,21 @@ public class GameEngineService : IAsyncDisposable
         
         try
         {
+            // Simplified render data to avoid serialization issues
             var renderData = new
             {
-                player = _player,
-                entities = _entities,
+                player = new {
+                    pos = new { x = _player.Pos.X, y = _player.Pos.Y },
+                    width = _player.Width,
+                    height = _player.Height,
+                    direction = _player.Direction
+                },
+                entities = _entities.Select(e => new {
+                    pos = new { x = e.Pos.X, y = e.Pos.Y },
+                    width = e.Width,
+                    height = e.Height,
+                    type = (int)e.Type
+                }).ToList(),
                 cameraX = _cameraX,
                 level = _levelData.Map
             };
@@ -403,6 +414,7 @@ public class GameEngineService : IAsyncDisposable
         catch (Exception ex)
         {
             Console.WriteLine($"Render error: {ex.Message}");
+            Console.WriteLine($"Stack trace: {ex.StackTrace}");
         }
     }
     

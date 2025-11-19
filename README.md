@@ -50,14 +50,16 @@ Following the official MonoGame 2D game tutorial patterns:
 
 Reference: https://docs.monogame.net/articles/tutorials/building_2d_games/index.html
 
-## 📖 Previous Version (Blazor WebAssembly)
+## 🌐 Blazor WebAssembly Version (NEW!)
 
-The original Blazor WebAssembly version is still available in the `BlazorApp/` directory.
+The Blazor app now runs with **MonoGame-style C# game engine as WebAssembly**!
 
 ### Blazor Features
+- 🎮 **Pure C# game logic** running as WebAssembly (no JavaScript game code!)
 - 🤖 AI-generated levels with Google Gemini 2.0 Flash
 - 📱 Web-based with touch controls
 - 🌐 Runs in browser via WebAssembly
+- ⚡ MonoGame-inspired architecture adapted for the browser
 
 ### Running Blazor Version
 
@@ -67,17 +69,20 @@ dotnet restore
 dotnet run
 ```
 
-Open browser at `https://localhost:5001`
+Open browser at `http://localhost:5202`
 
-## 🔄 Migration Highlights
+## 🔄 Architecture Highlights
 
-| Aspect | Before (Blazor + JS) | After (MonoGame) |
-|--------|---------------------|------------------|
-| Rendering | HTML5 Canvas + JavaScript | MonoGame SpriteBatch |
-| Game Loop | JavaScript requestAnimationFrame | MonoGame GameTime |
-| Input | DOM Events | MonoGame Keyboard API |
+| Aspect | Blazor WebAssembly | MonoGame Desktop |
+|--------|-------------------|------------------|
+| Rendering | Canvas via JSInterop | MonoGame SpriteBatch |
+| Game Loop | C# Timer (60 FPS) | MonoGame GameTime |
+| Game Logic | **C# WebAssembly** | C# Native |
+| Input | JSInterop + Keyboard | MonoGame Keyboard API |
 | Platform | Web Browser | Desktop Native |
-| Performance | JavaScript Engine | Native .NET Runtime |
+| Performance | WebAssembly | Native .NET Runtime |
+
+**Key Achievement**: The Blazor version now runs **100% C# game logic** as WebAssembly, with only minimal JavaScript for Canvas rendering calls!
 
 ## 🚀 Building for Production
 
