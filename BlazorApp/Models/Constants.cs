@@ -9,41 +9,76 @@ public static class GameConstants
     public const int SCREEN_WIDTH = 256;
     public const int SCREEN_HEIGHT = 240;
 
-    // Physics - Adjusted for authentic NES feel (approx 60FPS logic)
-    public const double GRAVITY = 0.25;
-    public const double FRICTION = 0.90;
-    public const double ACCELERATION = 0.12;
-    public const double MAX_WALK_SPEED = 1.4;
-    public const double MAX_RUN_SPEED = 2.6;
-    public const double JUMP_FORCE = 6.6;
-    public const double BOUNCE_FORCE = 3.5;
+    // Physics - Super Mario World SNES feel (slightly floatier, faster)
+    public const double GRAVITY = 0.22;
+    public const double FRICTION = 0.92;
+    public const double ACCELERATION = 0.15;
+    public const double MAX_WALK_SPEED = 1.6;
+    public const double MAX_RUN_SPEED = 3.2;
+    public const double JUMP_FORCE = 7.2;
+    public const double BOUNCE_FORCE = 4.5;
+    public const double SPIN_JUMP_FORCE = 7.8;
 
-    // Colors
+    // Colors - Super Mario World 16-bit palette
     public static class Colors
     {
-        public const string SKY = "#5C94FC";
-        public const string GROUND = "#C84C0C";
-        public const string BRICK = "#B83410";
-        public const string QUESTION = "#F8D820";
-        public const string PIPE = "#00A800";
-        public const string PIPE_DARK = "#006000";
-        public const string GOOMBA = "#E45C10";
-        public const string MARIO_RED = "#F83800";
-        public const string MARIO_SKIN = "#FFA044";
-        public const string MARIO_BROWN = "#887000";
-        public const string FIRE_WHITE = "#F8F8F8";
-        public const string FIRE_RED = "#F83800";
-        public const string MUSHROOM_RED = "#E45C10";
-        public const string MUSHROOM_SKIN = "#FFA044";
-        public const string FLOWER_ORANGE = "#E45C10";
-        public const string FIREBALL_CENTER = "#FFA044";
-        public const string FIREBALL_OUTER = "#F83800";
+        // Sky and background
+        public const string SKY = "#70B0F8";
+        
+        // Ground tiles
+        public const string GROUND = "#F07828";
+        public const string GROUND_DARK = "#B85818";
+        public const string GROUND_HIGHLIGHT = "#FFA858";
+        
+        // Blocks
+        public const string BRICK = "#F8B800";
+        public const string BRICK_DARK = "#C08000";
+        public const string QUESTION = "#F8D868";
+        public const string QUESTION_DARK = "#D8A020";
+        
+        // Pipes
+        public const string PIPE = "#58C870";
+        public const string PIPE_DARK = "#288840";
+        public const string PIPE_HIGHLIGHT = "#90E898";
+        
+        // Enemies
+        public const string REX = "#6078D8";
+        public const string REX_BELLY = "#F0D058";
+        public const string KOOPA_GREEN = "#58C870";
+        public const string KOOPA_SHELL = "#58C870";
+        
+        // Mario
+        public const string MARIO_RED = "#F01018";
+        public const string MARIO_BLUE = "#2860D8";
+        public const string MARIO_SKIN = "#FFC890";
+        public const string MARIO_BROWN = "#885020";
+        public const string MARIO_WHITE = "#FFFFFF";
+        
+        // Power-ups
+        public const string CAPE_YELLOW = "#F8D000";
+        public const string MUSHROOM_RED = "#F01018";
+        public const string MUSHROOM_SPOTS = "#FFFFFF";
+        
+        // Nature
+        public const string CLOUD = "#FFFFFF";
+        public const string CLOUD_OUTLINE = "#60A8F0";
+        public const string BUSH_GREEN = "#58C870";
+        public const string BUSH_DARK = "#288840";
+        public const string HILL_GREEN = "#78D880";
+        public const string HILL_DARK = "#40A050";
+        public const string GRASS_TOP = "#88E060";
+        
+        // Basic
         public const string BLACK = "#000000";
         public const string WHITE = "#FFFFFF";
-        public const string CLOUD = "#FFFFFF";
-        public const string BUSH = "#00A800";
-        public const string HILL = "#008000";
-        public const string HILL_OUTLINE = "#004000";
+        
+        // Collectibles
+        public const string COIN_GOLD = "#F8D868";
+        public const string COIN_OUTLINE = "#C08000";
+        
+        // Message blocks
+        public const string MESSAGE_BLOCK = "#A0A0A0";
+        public const string MESSAGE_BLOCK_OUTLINE = "#505050";
     }
 
     // Level dimensions
@@ -79,10 +114,10 @@ public static class GameConstants
 
         void PlacePipe(int x, int h)
         {
-            FillRect(x, 13 - h, 2, h, TileType.PIPE_L);
+            // SMW pipes
             Set(x, 13 - h, TileType.PIPE_TOP_L);
             Set(x + 1, 13 - h, TileType.PIPE_TOP_R);
-            for (int i = 1; i <= h; i++)
+            for (int i = 1; i < h; i++)
             {
                 Set(x, 13 - h + i, TileType.PIPE_L);
                 Set(x + 1, 13 - h + i, TileType.PIPE_R);
@@ -105,112 +140,136 @@ public static class GameConstants
             }
         }
 
-        // --- 1-1 Approximation ---
-        PlaceGround(0, 69);
-        PlaceGround(71, 15);
-        PlaceGround(89, 64);
-        PlaceGround(155, 65);
+        // --- Super Mario World: Yoshi's Island 1 Layout ---
+        PlaceGround(0, 85);
+        PlaceGround(90, 25);
+        PlaceGround(120, 80);
+        PlaceGround(205, 15);
 
-        // Scenery - Clouds
-        foreach (var x in new[] { 8, 19, 56, 67, 103, 114, 152, 163 })
+        // Scenery - Larger clouds
+        foreach (var x in new[] { 10, 25, 60, 85, 110, 145, 175 })
+        {
             Set(x, 3, TileType.CLOUD);
-        foreach (var x in new[] { 27, 36, 75, 84, 123, 132, 171, 180 })
+            Set(x + 1, 3, TileType.CLOUD);
             Set(x, 4, TileType.CLOUD);
+            Set(x + 1, 4, TileType.CLOUD);
+        }
 
-        // Scenery - Hills and Bushes
-        foreach (var x in new[] { 0, 48, 96, 144, 192 })
-            Set(x, 10, TileType.HILL);
-        foreach (var x in new[] { 16, 64, 112, 160 })
+        // Hills
+        foreach (var x in new[] { 5, 55, 105, 155 })
+        {
             Set(x, 11, TileType.HILL);
-        foreach (var x in new[] { 11, 59, 107, 155 })
+            Set(x + 1, 11, TileType.HILL);
+            Set(x + 2, 11, TileType.HILL);
+        }
+        
+        // Bushes
+        foreach (var x in new[] { 15, 35, 65, 95, 125, 165 })
+        {
             Set(x, 12, TileType.BUSH);
-        foreach (var x in new[] { 23, 71, 119, 167 })
-            Set(x, 12, TileType.BUSH);
+            Set(x + 1, 12, TileType.BUSH);
+        }
 
-        // Structures - First section
-        Set(16, 9, TileType.QUESTION_BLOCK);
-        Set(20, 9, TileType.BRICK);
-        Set(21, 9, TileType.QUESTION_BLOCK);
-        Set(22, 9, TileType.BRICK);
-        Set(23, 9, TileType.QUESTION_BLOCK);
-        Set(24, 9, TileType.BRICK);
-        Set(22, 5, TileType.QUESTION_BLOCK);
-
-        // Pipes
-        PlacePipe(28, 2);
-        PlacePipe(38, 3);
-        PlacePipe(46, 4);
-        PlacePipe(57, 4);
-
-        // More blocks
-        Set(64, 8, TileType.INVISIBLE_BLOCK);
-        Set(77, 9, TileType.BRICK);
-        Set(78, 9, TileType.QUESTION_BLOCK);
-        Set(79, 9, TileType.BRICK);
-
-        FillRect(80, 5, 8, 1, TileType.BRICK);
-        FillRect(91, 5, 3, 1, TileType.BRICK);
-        Set(94, 5, TileType.QUESTION_BLOCK);
-        Set(94, 9, TileType.BRICK);
-
-        Set(100, 9, TileType.BRICK);
-        Set(101, 9, TileType.BRICK);
-        Set(105, 9, TileType.QUESTION_BLOCK);
-        Set(106, 9, TileType.QUESTION_BLOCK);
-        Set(109, 9, TileType.QUESTION_BLOCK);
-        Set(109, 5, TileType.QUESTION_BLOCK);
-
-        Set(118, 9, TileType.BRICK);
-        Set(119, 5, TileType.BRICK);
-        Set(120, 5, TileType.BRICK);
-        Set(121, 5, TileType.BRICK);
-
-        Set(129, 5, TileType.BRICK);
-        Set(130, 5, TileType.BRICK);
-        Set(129, 9, TileType.PIPE_L);
-        Set(130, 9, TileType.BRICK);
-
-        // Stairs
-        CreateStair(134, 4, 1);
-        CreateStair(143, 4, -1);
-        CreateStair(148, 4, 1);
-        CreateStair(155, 4, -1);
-        CreateStair(181, 8, 1);
-
-        // Flag and castle
-        Set(198, 12, TileType.HARD_BLOCK);
-        FillRect(198, 2, 1, 10, TileType.POLE);
-        Set(198, 2, TileType.FLAG);
-        Set(202, 12, TileType.CASTLE);
+        // Message block at start
+        Set(10, 12, TileType.HARD_BLOCK);
+        
+        // Early section
+        Set(18, 10, TileType.QUESTION_BLOCK);
+        Set(20, 10, TileType.QUESTION_BLOCK);
+        Set(24, 7, TileType.QUESTION_BLOCK);
+        
+        PlacePipe(32, 2);
+        
+        for (int i = 0; i < 5; i++)
+            Set(40 + i, 10, TileType.QUESTION_BLOCK);
+        
+        PlacePipe(50, 3);
+        
+        FillRect(58, 8, 4, 1, TileType.BRICK);
+        Set(60, 5, TileType.QUESTION_BLOCK);
+        
+        PlacePipe(70, 4);
+        
+        FillRect(86, 10, 3, 1, TileType.HARD_BLOCK);
+        
+        Set(95, 10, TileType.QUESTION_BLOCK);
+        Set(98, 10, TileType.QUESTION_BLOCK);
+        Set(101, 10, TileType.QUESTION_BLOCK);
+        
+        PlacePipe(108, 3);
+        
+        FillRect(118, 8, 6, 1, TileType.BRICK);
+        Set(121, 5, TileType.QUESTION_BLOCK);
+        
+        for (int i = 0; i < 8; i++)
+            Set(130 + i, 10, i % 2 == 0 ? TileType.BRICK : TileType.QUESTION_BLOCK);
+        
+        PlacePipe(145, 4);
+        
+        CreateStair(155, 5, 1);
+        FillRect(160, 8, 8, 1, TileType.HARD_BLOCK);
+        CreateStair(168, 5, -1);
+        
+        PlacePipe(178, 3);
+        PlacePipe(188, 4);
+        
+        CreateStair(196, 8, 1);
+        
+        Set(210, 12, TileType.HARD_BLOCK);
+        FillRect(210, 2, 1, 10, TileType.POLE);
+        Set(210, 2, TileType.FLAG);
+        
+        Set(215, 12, TileType.CASTLE);
+        Set(216, 12, TileType.CASTLE);
 
         return map;
     }
 
-    // Generate default entities (enemies) for the level
+    // Generate default entities - Super Mario World enemies
     public static List<Entity> GetDefaultEntities()
     {
         var entities = new List<Entity>();
         var entityId = 1000;
         
-        // Ground level Y position (row 13 is ground, so entities at row 12)
         const int groundY = 12 * TILE_SIZE;
         
-        // Place Goombas at strategic positions throughout the level
-        var enemyPositions = new[] { 22, 40, 51, 80, 82, 97, 115, 125, 140, 160, 170 };
+        // Rex enemies
+        var rexPositions = new[] { 25, 36, 48, 62, 76, 92, 112, 135, 150, 175, 190 };
         
-        foreach (var x in enemyPositions)
+        foreach (var x in rexPositions)
         {
             entities.Add(new Entity
             {
                 Id = entityId++,
-                Type = EntityType.GOOMBA,
+                Type = EntityType.KOOPA,
+                Pos = new Vector2D(x * TILE_SIZE, groundY),
+                Vel = new Vector2D(-0.6, 0),
+                Width = 16,
+                Height = 20,
+                Dead = false,
+                Grounded = false,
+                Direction = -1,
+                State = "rex"
+            });
+        }
+        
+        // Koopa Troopas
+        var koopaPositions = new[] { 55, 88, 125, 165, 185 };
+        
+        foreach (var x in koopaPositions)
+        {
+            entities.Add(new Entity
+            {
+                Id = entityId++,
+                Type = EntityType.KOOPA,
                 Pos = new Vector2D(x * TILE_SIZE, groundY),
                 Vel = new Vector2D(-0.5, 0),
                 Width = 16,
-                Height = 16,
+                Height = 24,
                 Dead = false,
                 Grounded = false,
-                Direction = -1
+                Direction = -1,
+                State = "koopa"
             });
         }
         
