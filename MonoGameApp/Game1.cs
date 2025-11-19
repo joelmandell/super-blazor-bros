@@ -45,11 +45,15 @@ public class Game1 : Game
         _levelData = new LevelData 
         { 
             Map = GameConstants.GetDefaultLevelMap(),
+            Entities = GameConstants.GetDefaultEntities(),
             BackgroundColor = GameConstants.Colors.SKY
         };
         
         // Initialize player
         InitializePlayer();
+        
+        // Initialize entities list
+        _entities = new List<Entity>(_levelData.Entities);
 
         base.Initialize();
     }
@@ -177,6 +181,7 @@ public class Game1 : Game
         _levelData = new LevelData 
         { 
             Map = GameConstants.GetDefaultLevelMap(),
+            Entities = GameConstants.GetDefaultEntities(),
             BackgroundColor = GameConstants.Colors.SKY
         };
         

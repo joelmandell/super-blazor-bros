@@ -62,7 +62,19 @@ public class GameEngineService : IAsyncDisposable
             World = customLevel != null ? "1-AI" : "1-1"
         };
         
-        _levelData = customLevel ?? new LevelData { Map = GameConstants.GetDefaultLevelMap() };
+        if (customLevel == null)
+        {
+            _levelData = new LevelData 
+            { 
+                Map = GameConstants.GetDefaultLevelMap(),
+                Entities = GameConstants.GetDefaultEntities()
+            };
+        }
+        else
+        {
+            _levelData = customLevel;
+        }
+        
         InitializePlayer();
         _entities = new List<Entity>(_levelData.Entities);
         _cameraX = 0;
