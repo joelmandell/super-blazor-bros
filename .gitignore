@@ -1,8 +1,24 @@
-# Dependencies
+# .NET Build outputs
+bin/
+obj/
+*.user
+*.suo
+*.cache
+*.dll
+*.pdb
+*.exe
+
+# Blazor specific
+wwwroot/dist/
+wwwroot/_framework/
+BlazorApp/bin/
+BlazorApp/obj/
+
+# Dependencies (old React project)
 node_modules/
 package-lock.json
 
-# Build outputs
+# Build outputs (old React project)
 dist/
 dist-ssr/
 *.local
@@ -18,7 +34,6 @@ dist-ssr/
 !.vscode/extensions.json
 .idea
 .DS_Store
-*.suo
 *.ntvs*
 *.njsproj
 *.sln

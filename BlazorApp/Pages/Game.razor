@@ -1,0 +1,311 @@
+@page "/"
+@using SuperBlazorBros.Models
+@using SuperBlazorBros.Services
+@inject IJSRuntime JSRuntime
+@inject GeminiService GeminiService
+
+<PageTitle>Super Blazor Bros</PageTitle>
+
+<div class="game-container">
+    <!-- Header / HUD -->
+    <div class="hud">
+        <div class="hud-item">
+            <span class="hud-label">MARIO</span>
+            <span>@Stats.Score.ToString().PadLeft(6, '0')</span>
+        </div>
+        <div class="hud-item">
+            <span class="hud-label">MYNT</span>
+            <span>x@Stats.Coins.ToString().PadLeft(2, '0')</span>
+        </div>
+        <div class="hud-item">
+            <span class="hud-label">VÄRLD</span>
+            <span>@Stats.World</span>
+        </div>
+        <div class="hud-item">
+            <span class="hud-label">TID</span>
+            <span>@Stats.Time.ToString().PadLeft(3, '0')</span>
+        </div>
+    </div>
+
+    <!-- Game Canvas Container -->
+    <div class="game-canvas-container">
+        <canvas @ref="gameCanvas" id="gameCanvas" width="768" height="720"></canvas>
+
+        <!-- Menu Overlay -->
+        @if (Status == GameStatus.MENU)
+        {
+            <div class="overlay menu-overlay">
+                <h1 class="game-title">SUPER BLAZOR BROS</h1>
+
+                @if (!showKeyInput)
+                {
+                    <button class="menu-button primary" @onclick="StartGame">
+                        STARTA SPEL (1-1)
+                    </button>
+                    <button class="menu-button ai-button" @onclick="HandleAiGenerate">
+                        <span>✨</span> SKAPA AI-BANA
+                    </button>
+                    <button class="api-key-link" @onclick="() => showKeyInput = true">
+                        @(string.IsNullOrEmpty(apiKey) ? "Ange API-nyckel" : "Ändra API-nyckel")
+                    </button>
+
+                    <div class="controls-info">
+                        <p class="controls-title">KONTROLLER:</p>
+                        <p>PILLAR / D-PAD för att gå</p>
+                        <p><span class="highlight">SPACE / A</span> för att HOPPA</p>
+                        <p><span class="highlight">SHIFT / B</span> för att SPRINGA/SKJUTA</p>
+                    </div>
+                }
+                else
+                {
+                    <div class="api-key-dialog">
+                        <h2 class="dialog-title">Gemini API Nyckel</h2>
+                        <p class="dialog-text">
+                            För att använda AI-funktionerna behöver du en gratis API-nyckel från Google AI Studio. 
+                            Nyckeln sparas i din webbläsare.
+                        </p>
+                        <input type="password" 
+                               class="api-key-input" 
+                               placeholder="Klistra in nyckel här..." 
+                               @bind="apiKey"
+                               @bind:event="oninput" />
+                        <div class="dialog-buttons">
+                            <button class="dialog-button save-button" @onclick="SaveApiKey">Spara</button>
+                            <button class="dialog-button cancel-button" @onclick="() => showKeyInput = false">Avbryt</button>
+                        </div>
+                        <a href="https://aistudio.google.com/app/apikey" target="_blank" class="api-key-link-external">
+                            Hämta nyckel här
+                        </a>
+                    </div>
+                }
+            </div>
+        }
+
+        <!-- Loading Overlay -->
+        @if (Status == GameStatus.LOADING)
+        {
+            <div class="overlay loading-overlay">
+                <p class="loading-text">@loadingText</p>
+            </div>
+        }
+
+        <!-- Game Over Overlay -->
+        @if (Status == GameStatus.GAME_OVER)
+        {
+            <div class="overlay game-over-overlay">
+                <p class="game-over-text">GAME OVER</p>
+                <button class="menu-link" @onclick="() => Status = GameStatus.MENU">MENY</button>
+            </div>
+        }
+
+        <!-- Victory Overlay -->
+        @if (Status == GameStatus.VICTORY)
+        {
+            <div class="overlay victory-overlay">
+                <p class="victory-text">BANA KLARAD!</p>
+                <p class="score-text">POÄNG: @Stats.Score</p>
+                <div class="victory-buttons">
+                    <button class="victory-button" @onclick="StartGame">SPELA IGEN</button>
+                    <button class="victory-button ai-button" @onclick="HandleAiGenerate">NÄSTA BANA (AI)</button>
+                </div>
+            </div>
+        }
+    </div>
+
+    <!-- On-Screen Controls -->
+    <div class="controls-container">
+        <div class="dpad-container">
+            <div class="dpad-buttons">
+                <button class="control-button" @onmousedown="@(e => SendKey("ArrowLeft", true))"
+                        @onmouseup="@(e => SendKey("ArrowLeft", false))"
+                        @ontouchstart="@(e => SendKey("ArrowLeft", true))"
+                        @ontouchend="@(e => SendKey("ArrowLeft", false))">
+                    ←
+                </button>
+                <button class="control-button" @onmousedown="@(e => SendKey("ArrowRight", true))"
+                        @onmouseup="@(e => SendKey("ArrowRight", false))"
+                        @ontouchstart="@(e => SendKey("ArrowRight", true))"
+                        @ontouchend="@(e => SendKey("ArrowRight", false))">
+                    →
+                </button>
+            </div>
+        </div>
+
+        <div class="brand">NINTENDO</div>
+
+        <div class="action-container">
+            <div class="action-buttons">
+                <div class="button-with-label">
+                    <button class="control-button action-button" @onmousedown="@(e => SendKey("ShiftLeft", true))"
+                            @onmouseup="@(e => SendKey("ShiftLeft", false))"
+                            @ontouchstart="@(e => SendKey("ShiftLeft", true))"
+                            @ontouchend="@(e => SendKey("ShiftLeft", false))">
+                        B
+                    </button>
+                    <span class="button-label">SPRING</span>
+                </div>
+                <div class="button-with-label button-raised">
+                    <button class="control-button action-button" @onmousedown="@(e => SendKey("Space", true))"
+                            @onmouseup="@(e => SendKey("Space", false))"
+                            @ontouchstart="@(e => SendKey("Space", true))"
+                            @ontouchend="@(e => SendKey("Space", false))">
+                        A
+                    </button>
+                    <span class="button-label">HOPPA</span>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@code {
+    private ElementReference gameCanvas;
+    private GameStatus Status = GameStatus.MENU;
+    private GameStats Stats = new GameStats();
+    private LevelData levelData = new LevelData { Map = GameConstants.GetDefaultLevelMap() };
+    private string loadingText = "";
+    private string apiKey = "";
+    private bool showKeyInput = false;
+    private System.Threading.Timer? countdownTimer;
+
+    protected override async Task OnInitializedAsync()
+    {
+        // Load API key from local storage
+        apiKey = await JSRuntime.InvokeAsync<string>("localStorage.getItem", "gemini_api_key") ?? "";
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            await JSRuntime.InvokeVoidAsync("initializeGame", DotNetObjectReference.Create(this));
+        }
+    }
+
+    private void StartGame()
+    {
+        Stats = new GameStats { Score = 0, Coins = 0, Time = 400, Lives = 3, World = "1-1" };
+        levelData = new LevelData { Map = GameConstants.GetDefaultLevelMap() };
+        Status = GameStatus.PLAYING;
+        StartCountdown();
+        StateHasChanged();
+        
+        _ = JSRuntime.InvokeVoidAsync("startGame", levelData);
+    }
+
+    private async Task HandleAiGenerate()
+    {
+        if (string.IsNullOrEmpty(apiKey))
+        {
+            showKeyInput = true;
+            Status = GameStatus.MENU;
+            StateHasChanged();
+            return;
+        }
+
+        loadingText = "Gemini bygger en bana...";
+        Status = GameStatus.LOADING;
+        StateHasChanged();
+
+        try
+        {
+            var data = await GeminiService.GenerateLevelAsync(apiKey);
+
+            if (data != null)
+            {
+                levelData = data;
+                Stats = new GameStats { Score = 0, Coins = 0, Time = 400, World = "1-AI", Lives = 3 };
+                Status = GameStatus.PLAYING;
+                StartCountdown();
+                StateHasChanged();
+                
+                await JSRuntime.InvokeVoidAsync("startGame", levelData);
+            }
+            else
+            {
+                Status = GameStatus.MENU;
+                StateHasChanged();
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error generating level: {ex.Message}");
+            Status = GameStatus.MENU;
+            StateHasChanged();
+        }
+    }
+
+    private async Task SaveApiKey()
+    {
+        await JSRuntime.InvokeVoidAsync("localStorage.setItem", "gemini_api_key", apiKey);
+        showKeyInput = false;
+        StateHasChanged();
+    }
+
+    private async Task SendKey(string key, bool isDown)
+    {
+        await JSRuntime.InvokeVoidAsync("sendKeyEvent", key, isDown);
+    }
+
+    private void StartCountdown()
+    {
+        countdownTimer?.Dispose();
+        countdownTimer = new System.Threading.Timer(_ =>
+        {
+            if (Status == GameStatus.PLAYING && Stats.Time > 0)
+            {
+                Stats.Time--;
+                InvokeAsync(StateHasChanged);
+            }
+        }, null, TimeSpan.FromSeconds(1), TimeSpan.FromSeconds(1));
+    }
+
+    [JSInvokable]
+    public void OnScore(int points)
+    {
+        Stats.Score += points;
+        StateHasChanged();
+    }
+
+    [JSInvokable]
+    public void OnCoin()
+    {
+        Stats.Coins++;
+        StateHasChanged();
+    }
+
+    [JSInvokable]
+    public void OnDie()
+    {
+        Stats.Lives--;
+        if (Stats.Lives < 0)
+        {
+            Status = GameStatus.GAME_OVER;
+        }
+        else
+        {
+            Status = GameStatus.LOADING;
+            loadingText = $"x  {Stats.Lives}";
+            Task.Delay(2500).ContinueWith(_ =>
+            {
+                Status = GameStatus.PLAYING;
+                Stats.Time = 400;
+                InvokeAsync(StateHasChanged);
+            });
+        }
+        StateHasChanged();
+    }
+
+    [JSInvokable]
+    public void OnWin()
+    {
+        Status = GameStatus.VICTORY;
+        countdownTimer?.Dispose();
+        StateHasChanged();
+    }
+
+    public void Dispose()
+    {
+        countdownTimer?.Dispose();
+    }
+}
