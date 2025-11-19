@@ -1,20 +1,21 @@
-# Super Blazor Bros
+# Super Mario World - Blazor Edition
 
-A Super Mario Bros-inspired game now built with **MonoGame** and .NET 10, following MonoGame 2D game development patterns.
+A Super Mario World (SNES 16-bit)-inspired game now built with **MonoGame** and .NET 10, recreating Yoshi's Island 1!
 
-## 🎮 MonoGame Version (NEW!)
+## 🎮 MonoGame Version - Super Mario World Style!
 
-The game has been migrated from JavaScript/Canvas to **MonoGame**, a professional cross-platform game framework.
+The game features **Super Mario World** graphics, gameplay, and the famous first level: **Yoshi's Island 1**.
 
 ### Features
 
-- 🎮 Classic Super Mario Bros gameplay
-- 🖼️ Native 2D rendering with MonoGame SpriteBatch
-- 🎯 Authentic NES-style physics
+- 🎮 Super Mario World gameplay with spin jump mechanic
+- 🖼️ 16-bit SNES-style graphics with vibrant colors
+- 🌀 **Spin Jump** - Hold A while jumping for higher jumps and enemy protection!
+- 🎯 SMW-style physics (floatier, faster than NES)
 - 🖥️ Cross-platform desktop support (Windows, Linux, macOS)
-- 📊 HUD with score, coins, world, and time
-- 👾 Enemies (Goombas) throughout the level
-- 🏁 Complete level with victory condition
+- 📊 HUD with score, coins, world (YI1), and time
+- 🦖 **Rex and Koopa Troopa enemies** from Super Mario World
+- 🏁 Yoshi's Island 1 level layout with goal tape
 
 ### Quick Start
 
@@ -27,7 +28,8 @@ dotnet run
 **Controls:**
 - Arrow Keys: Move
 - Space/Up: Jump
-- Shift: Run
+- **A**: Hold while jumping for **Spin Jump** (protects from enemies!)
+- Shift: Run (SMW is faster!)
 - Enter: Start/Confirm
 - Escape: Exit
 
@@ -51,16 +53,17 @@ Following the official MonoGame 2D game tutorial patterns:
 
 Reference: https://docs.monogame.net/articles/tutorials/building_2d_games/index.html
 
-## 🌐 Blazor WebAssembly Version (NEW!)
+## 🌐 Blazor WebAssembly Version
 
-The Blazor app now runs with **MonoGame-style C# game engine as WebAssembly**!
+The Blazor app now runs with **Super Mario World-style C# game engine as WebAssembly**!
 
 ### Blazor Features
 - 🎮 **Pure C# game logic** running as WebAssembly (no JavaScript game code!)
+- 🌀 Super Mario World gameplay with spin jump support
 - 📱 Web-based with touch controls
 - 🌐 Runs in browser via WebAssembly
-- 👾 Enemies (Goombas) throughout the level
-- ⚡ MonoGame-inspired architecture adapted for the browser
+- 🦖 **Rex and Koopa enemies** from Super Mario World
+- ⚡ SMW-inspired 16-bit graphics and physics
 
 ### Running Blazor Version
 
