@@ -252,61 +252,91 @@ public class Game1 : Game
 
     private void HandleCollisions()
     {
-        int[] groundTiles = { 1, 2, 3, 5, 6, 7, 8, 9, 10 };
-        
-        // Ground collision
         _player.Grounded = false;
-        int tileX = (int)(_player.Position.X / GameConstants.TILE_SIZE);
-        int tileY = (int)((_player.Position.Y + _player.Height) / GameConstants.TILE_SIZE);
+        int[] groundTiles = { 1, 2, 3, 5, 6, 7, 8, 9 };
         
-        if (tileY >= 0 && tileY < _levelData.Map.Length)
+        // Get the range of tiles the player overlaps
+        int startX = Math.Max(0, (int)(_player.Position.X / GameConstants.TILE_SIZE));
+        int endX = Math.Min((int)((_player.Position.X + _player.Width) / GameConstants.TILE_SIZE), 
+                           (_levelData.Map[0]?.Length ?? 0) - 1);
+        int startY = Math.Max(0, (int)(_player.Position.Y / GameConstants.TILE_SIZE));
+        int endY = Math.Min((int)((_player.Position.Y + _player.Height) / GameConstants.TILE_SIZE), 
+                           _levelData.Map.Length - 1);
+        
+        // Check all tiles the player overlaps
+        for (int y = startY; y <= endY; y++)
         {
-            var row = _levelData.Map[tileY];
-            if (row != null && tileX >= 0 && tileX < row.Length)
+            if (y < 0 || y >= _levelData.Map.Length || _levelData.Map[y] == null) continue;
+            
+            for (int x = startX; x <= endX; x++)
             {
-                if (Array.IndexOf(groundTiles, row[tileX]) >= 0 || 
-                    (tileX + 1 < row.Length && Array.IndexOf(groundTiles, row[tileX + 1]) >= 0))
+                if (x < 0 || x >= _levelData.Map[y].Length) continue;
+                
+                int tile = _levelData.Map[y][x];
+                
+                if (Array.IndexOf(groundTiles, tile) >= 0)
                 {
-                    float groundY = tileY * GameConstants.TILE_SIZE;
-                    if (_player.Position.Y + _player.Height > groundY && _player.Velocity.Y >= 0)
+                    float tileX = x * GameConstants.TILE_SIZE;
+                    float tileY = y * GameConstants.TILE_SIZE;
+                    float tileRight = tileX + GameConstants.TILE_SIZE;
+                    float tileBottom = tileY + GameConstants.TILE_SIZE;
+                    
+                    // Check if player is actually colliding with this tile
+                    if (_player.Position.X < tileRight && 
+                        _player.Position.X + _player.Width > tileX &&
+                        _player.Position.Y < tileBottom && 
+                        _player.Position.Y + _player.Height > tileY)
                     {
-                        _player.Position = new Vector2(_player.Position.X, groundY - _player.Height);
-                        _player.Velocity = new Vector2(_player.Velocity.X, 0);
-                        _player.Grounded = true;
-                        _player.IsJumping = false;
+                        // Calculate overlap on each side
+                        float overlapLeft = (_player.Position.X + _player.Width) - tileX;
+                        float overlapRight = tileRight - _player.Position.X;
+                        float overlapTop = (_player.Position.Y + _player.Height) - tileY;
+                        float overlapBottom = tileBottom - _player.Position.Y;
+                        
+                        // Find the minimum overlap to resolve collision
+                        float minOverlap = Math.Min(Math.Min(overlapLeft, overlapRight), 
+                                                    Math.Min(overlapTop, overlapBottom));
+                        
+                        // Resolve collision based on the side with minimum overlap
+                        if (minOverlap == overlapTop && _player.Velocity.Y > 0)
+                        {
+                            // Collision from top (player falling onto ground)
+                            _player.Position = new Vector2(_player.Position.X, tileY - _player.Height);
+                            _player.Velocity = new Vector2(_player.Velocity.X, 0);
+                            _player.Grounded = true;
+                            _player.IsJumping = false;
+                        }
+                        else if (minOverlap == overlapBottom && _player.Velocity.Y < 0)
+                        {
+                            // Collision from bottom (player jumping into block)
+                            _player.Position = new Vector2(_player.Position.X, tileBottom);
+                            _player.Velocity = new Vector2(_player.Velocity.X, 0);
+                        }
+                        else if (minOverlap == overlapLeft && _player.Velocity.X > 0)
+                        {
+                            // Collision from left (moving right)
+                            _player.Position = new Vector2(tileX - _player.Width, _player.Position.Y);
+                            _player.Velocity = new Vector2(0, _player.Velocity.Y);
+                        }
+                        else if (minOverlap == overlapRight && _player.Velocity.X < 0)
+                        {
+                            // Collision from right (moving left)
+                            _player.Position = new Vector2(tileRight, _player.Position.Y);
+                            _player.Velocity = new Vector2(0, _player.Velocity.Y);
+                        }
                     }
                 }
             }
         }
         
-        // Prevent falling through bottom
-        if (_player.Position.Y + _player.Height > GameConstants.SCREEN_HEIGHT)
+        // Prevent falling through bottom of screen
+        if (_player.Position.Y > GameConstants.SCREEN_HEIGHT)
         {
             OnPlayerDie();
         }
         
-        // Horizontal collision
-        float nextX = _player.Position.X;
-        int nextTileX = (int)(nextX / GameConstants.TILE_SIZE);
-        int playerTileY = (int)(_player.Position.Y / GameConstants.TILE_SIZE);
-        
-        if (playerTileY >= 0 && playerTileY < _levelData.Map.Length)
-        {
-            var row = _levelData.Map[playerTileY];
-            if (row != null && nextTileX >= 0 && nextTileX < row.Length && 
-                Array.IndexOf(groundTiles, row[nextTileX]) >= 0)
-            {
-                if (_player.Velocity.X > 0)
-                {
-                    _player.Position = new Vector2(nextTileX * GameConstants.TILE_SIZE - _player.Width, _player.Position.Y);
-                }
-                else if (_player.Velocity.X < 0)
-                {
-                    _player.Position = new Vector2((nextTileX + 1) * GameConstants.TILE_SIZE, _player.Position.Y);
-                }
-                _player.Velocity = new Vector2(0, _player.Velocity.Y);
-            }
-        }
+        // Prevent going off left edge
+        _player.Position = new Vector2(Math.Max(0, _player.Position.X), _player.Position.Y);
     }
 
     private void UpdateCamera()

@@ -215,7 +215,7 @@ public class GameEngineService : IAsyncDisposable
         if ((_keysDown.Contains("Space") || _keysDown.Contains("ArrowUp") || _keysDown.Contains("KeyW")) && 
             _player.Grounded && !_player.IsJumping)
         {
-            _player.Vel.Y = GameConstants.JUMP_FORCE;
+            _player.Vel.Y = -GameConstants.JUMP_FORCE;
             _player.IsJumping = true;
             _player.Grounded = false;
         }
