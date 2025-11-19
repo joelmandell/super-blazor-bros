@@ -1,8 +1,11 @@
 @page "/"
 @using SuperBlazorBros.Models
 @using SuperBlazorBros.Services
+@using Microsoft.JSInterop
 @inject IJSRuntime JSRuntime
 @inject GeminiService GeminiService
+@inject GameEngineService GameEngine
+@implements IDisposable
 
 <PageTitle>Super Blazor Bros</PageTitle>
 
@@ -162,35 +165,43 @@
     private ElementReference gameCanvas;
     private GameStatus Status = GameStatus.MENU;
     private GameStats Stats = new GameStats();
-    private LevelData levelData = new LevelData { Map = GameConstants.GetDefaultLevelMap() };
     private string loadingText = "";
     private string apiKey = "";
     private bool showKeyInput = false;
-    private System.Threading.Timer? countdownTimer;
 
     protected override async Task OnInitializedAsync()
     {
         // Load API key from local storage
         apiKey = await JSRuntime.InvokeAsync<string>("localStorage.getItem", "gemini_api_key") ?? "";
+        
+        // Subscribe to game engine events
+        GameEngine.OnStateChanged += HandleGameStateChanged;
+        GameEngine.OnStatsChanged += HandleStatsChanged;
+        
+        // Initialize game engine
+        await GameEngine.InitializeAsync();
     }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
         if (firstRender)
         {
-            await JSRuntime.InvokeVoidAsync("initializeGame", DotNetObjectReference.Create(this));
+            // Game engine is already initialized
         }
     }
 
-    private void StartGame()
+    private async void StartGame()
     {
-        Stats = new GameStats { Score = 0, Coins = 0, Time = 400, Lives = 3, World = "1-1" };
-        levelData = new LevelData { Map = GameConstants.GetDefaultLevelMap() };
-        Status = GameStatus.PLAYING;
-        StartCountdown();
+        Status = GameStatus.LOADING;
+        loadingText = "Startar spel...";
         StateHasChanged();
         
-        _ = JSRuntime.InvokeVoidAsync("startGame", levelData);
+        await Task.Delay(100); // Small delay for UI update
+        await GameEngine.StartGameAsync();
+        
+        Status = GameEngine.Status;
+        Stats = GameEngine.Stats;
+        StateHasChanged();
     }
 
     private async Task HandleAiGenerate()
@@ -213,13 +224,10 @@
 
             if (data != null)
             {
-                levelData = data;
-                Stats = new GameStats { Score = 0, Coins = 0, Time = 400, World = "1-AI", Lives = 3 };
-                Status = GameStatus.PLAYING;
-                StartCountdown();
+                await GameEngine.StartGameAsync(data);
+                Status = GameEngine.Status;
+                Stats = GameEngine.Stats;
                 StateHasChanged();
-                
-                await JSRuntime.InvokeVoidAsync("startGame", levelData);
             }
             else
             {
@@ -244,68 +252,26 @@
 
     private async Task SendKey(string key, bool isDown)
     {
-        await JSRuntime.InvokeVoidAsync("sendKeyEvent", key, isDown);
+        // Import the renderer module and send key event
+        var module = await JSRuntime.InvokeAsync<IJSObjectReference>("import", "./js/gameRenderer.js");
+        await module.InvokeVoidAsync("sendKeyEvent", key, isDown);
     }
 
-    private void StartCountdown()
+    private void HandleGameStateChanged()
     {
-        countdownTimer?.Dispose();
-        countdownTimer = new System.Threading.Timer(_ =>
-        {
-            if (Status == GameStatus.PLAYING && Stats.Time > 0)
-            {
-                Stats.Time--;
-                InvokeAsync(StateHasChanged);
-            }
-        }, null, TimeSpan.FromSeconds(1), TimeSpan.FromSeconds(1));
+        Status = GameEngine.Status;
+        InvokeAsync(StateHasChanged);
     }
 
-    [JSInvokable]
-    public void OnScore(int points)
+    private void HandleStatsChanged(GameStats stats)
     {
-        Stats.Score += points;
-        StateHasChanged();
-    }
-
-    [JSInvokable]
-    public void OnCoin()
-    {
-        Stats.Coins++;
-        StateHasChanged();
-    }
-
-    [JSInvokable]
-    public void OnDie()
-    {
-        Stats.Lives--;
-        if (Stats.Lives < 0)
-        {
-            Status = GameStatus.GAME_OVER;
-        }
-        else
-        {
-            Status = GameStatus.LOADING;
-            loadingText = $"x  {Stats.Lives}";
-            Task.Delay(2500).ContinueWith(_ =>
-            {
-                Status = GameStatus.PLAYING;
-                Stats.Time = 400;
-                InvokeAsync(StateHasChanged);
-            });
-        }
-        StateHasChanged();
-    }
-
-    [JSInvokable]
-    public void OnWin()
-    {
-        Status = GameStatus.VICTORY;
-        countdownTimer?.Dispose();
-        StateHasChanged();
+        Stats = stats;
+        InvokeAsync(StateHasChanged);
     }
 
     public void Dispose()
     {
-        countdownTimer?.Dispose();
+        GameEngine.OnStateChanged -= HandleGameStateChanged;
+        GameEngine.OnStatsChanged -= HandleStatsChanged;
     }
 }
