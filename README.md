@@ -64,6 +64,7 @@ The Blazor app now runs with **Super Mario World-style C# game engine as WebAsse
 - 🌐 Runs in browser via WebAssembly
 - 🦖 **Rex and Koopa enemies** from Super Mario World
 - ⚡ SMW-inspired 16-bit graphics and physics
+- 🖼️ **Sprite support** - Use authentic Super Mario World sprites (see sprite instructions below)
 
 ### Running Blazor Version
 
@@ -74,6 +75,21 @@ dotnet run
 ```
 
 Open browser at `http://localhost:5202`
+
+### Adding Sprites to Blazor Version
+
+The Blazor app supports rendering with authentic Super Mario World sprites. To add sprites:
+
+1. **Download sprites** from [TCRF Development Sprites Page](https://tcrf.net/Development:Super_Mario_World_%28SNES%29/Sprites)
+2. **Place sprites** in `BlazorApp/wwwroot/sprites/` following the directory structure:
+   - `characters/` - Mario, Luigi sprites
+   - `enemies/` - Goomba, Koopa, Rex sprites
+   - `items/` - Mushroom, coins, power-ups
+   - `tiles/` - Ground, bricks, pipes, platforms
+
+3. **See detailed instructions** in `BlazorApp/wwwroot/sprites/README.md`
+
+The game will automatically detect available sprites and use them for rendering. If sprites are not available, it falls back to colored rectangles.
 
 ## 🔄 Architecture Highlights
 
