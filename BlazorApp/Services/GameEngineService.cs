@@ -46,7 +46,7 @@ public class GameEngineService : IAsyncDisposable
     {
         _objRef = DotNetObjectReference.Create(this);
         _renderModule = await _jsRuntime.InvokeAsync<IJSObjectReference>(
-            "import", "./js/gameRenderer.js");
+            "import", "./js/gameRendererWebGL.js");
             
         await _renderModule.InvokeVoidAsync("initialize", _objRef);
     }
