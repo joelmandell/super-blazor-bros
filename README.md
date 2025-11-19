@@ -1,30 +1,31 @@
-# Super React Bros
+# Super Blazor Bros
 
-En Super Mario Bros-klon byggd med React, TypeScript och Vite, med AI-genererade banor via Google Gemini.
+En Super Mario Bros-klon byggd med Blazor WebAssembly och .NET 10, med AI-genererade banor via Google Gemini.
 
 ## Funktioner
 
 - 🎮 Klassisk Super Mario Bros-spelupplevelse
-- 🤖 AI-genererade banor med Google Gemini 2.5 Flash
+- 🤖 AI-genererade banor med Google Gemini 2.0 Flash
 - 📱 Responsiv design med touch-kontroller
 - 🎨 Pixel-art grafik i klassisk stil
-- 🔊 Ljudeffekter och musik
+- 🔊 Ljudeffekter och musik (kommande)
 
 ## Installation
 
-**Förutsättningar:** Node.js 18+
+**Förutsättningar:** .NET 10 SDK
 
 1. Installera beroenden:
    ```bash
-   npm install
+   cd BlazorApp
+   dotnet restore
    ```
 
 2. Starta utvecklingsservern:
    ```bash
-   npm run dev
+   dotnet run
    ```
 
-3. Öppna webbläsaren på `http://localhost:3000`
+3. Öppna webbläsaren på `https://localhost:5001`
 
 ## AI-genererade banor
 
@@ -44,19 +45,28 @@ API-nyckeln sparas lokalt i din webbläsare.
 
 ## Teknologi
 
-- React 19
-- TypeScript
-- Vite
-- Google Gemini AI (@google/genai)
-- Tailwind CSS
+- Blazor WebAssembly
+- .NET 10
+- C# 13
+- Google Gemini AI
+- HTML5 Canvas
+- CSS3
 
 ## Bygga för produktion
 
 ```bash
-npm run build
+cd BlazorApp
+dotnet publish -c Release
 ```
 
-Byggfilerna kommer att finnas i `dist/`-mappen.
+Byggfilerna kommer att finnas i `BlazorApp/bin/Release/net10.0/publish/wwwroot/`-mappen.
+
+## Utveckling
+
+Projektet är byggt med Blazor WebAssembly och använder:
+- C# för spellogik och AI-integration
+- JavaScript för Canvas-rendering och tangentbordsinmatning
+- JSInterop för kommunikation mellan C# och JavaScript
 
 ## Licens
 
